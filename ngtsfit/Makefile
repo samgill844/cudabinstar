@@ -1,5 +1,5 @@
 cc=nvcc
-FLAGS= -O3 -lcudalc -lcudamc -Xcompiler -fpic 
+FLAGS= -O3 -Xcompiler -fpic 
 SHARED_OBJECTS = ../lib
 
 all : ngtsfit
