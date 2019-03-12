@@ -487,7 +487,7 @@ int main(int argc, char* argv[])
         end = clock();
         cudaGetLastError();
         cudaDeviceSynchronize();
-        printf("\tfinished in %.2f s [%d models / s].", (double) (end-start), (int) (nsteps*nwalkers/(end-start))); 
+        //printf("\tfinished in %.2f s [%d models / s].", (double) (end-start), (int) (nsteps*nwalkers/(end-start))); 
         printf("\n-----------------------------------");fflush(stdout);
     }
 
