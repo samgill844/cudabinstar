@@ -1,0 +1,187 @@
+#!/usr/bin/env python
+
+import numpy as np
+import sys
+import corner
+import matplotlib.pyplot as plt
+from gpuastro.binarystar import lc
+from gpuastro.utilities import htoc1_, htoc2__
+from uncertainties import ufloat
+import datetime
+from astropy import constants
+from astropy.table import Table 
+import astropy.units as u
+from astropy.coordinates import SkyCoord
+from astroquery.gaia import Gaia
+from matplotlib.patches import Rectangle
+
+np.warnings.filterwarnings('ignore')
+
+G = constants.G.value
+rho_sun = (constants.M_sun/(4*np.pi*constants.R_sun**3/3)).value
+radius_1 = (constants.R_sun / constants.au ).value
+R_jup_R_sun = constants.R_jup.value / constants.R_sun.value
+
+exodata = Table.read('/home/sam/bin/exoplanet.eu_catalog.csv', format='csv')
+
+def rho_func(period, radius_1) : 
+	return (radius_1**-3)*3*np.pi / (G*(period*86400)**2) / rho_sun
+
+def phaser(time, t_zero, period) : return ((time - t_zero)/period) - np.floor((time - t_zero)/period)
+
+
+def transit_duration(period, radius_1, k, b):
+	incl = np.arccos( np.clip(b*radius_1, -0.99,0.99) ) # in radians
+	period = period * 86400
+	par1 = np.clip((1 + k)**2 - (np.cos(incl)/radius_1)**2 ,0.001,np.inf)
+	par2 = np.clip(  radius_1 * par1 , -1,1)
+	t_dur =  (period / np.pi)*np.arcsin( par2 ) / np.sin(incl)
+	t_dur[np.isnan(t_dur)] = np.median(t_dur[np.isnan(t_dur)] )
+	return t_dur
+	
+
+
+if __name__ =="__main__":
+	if (len(sys.argv) < 2) : raise ValueError('No filename specified.')
+	
+	tmp = np.loadtxt(sys.argv[1],  delimiter=',')
+	labels = ['t_zero [HJD]', 'Period [d]', 'R1/a', 'R2/R1', 'h1', 'h2', 'b', 'zero-point', 'Jitter [mag.]']
+	
+	best_idx = np.argmax(tmp[:,-1])
+	best_step = tmp[best_idx][3:-1]
+	median_step = np.median(tmp, axis=0)[3:-1]
+	low_err = median_step - np.percentile(tmp, 100-68, axis=0)[3:-1]
+	high_err = np.percentile(tmp, 68, axis=0)[3:-1] - median_step
+
+	# Now report
+	print('---------------------------------------------------------------------------------------')
+	print('-                           Fitted parameters                                         -')
+	print('---------------------------------------------------------------------------------------')
+	print('Best step is index {} at step {} walker {} (block {})            [L = {:.4f}  ]'.format(int(best_idx), int(tmp[best_idx][0]), int(tmp[best_idx][2]), int(tmp[best_idx][1]), tmp[best_idx][-1]))
+	print('---------------------------------------------------------------------------------------')
+	for i in range(len(labels)):
+		print('{:>15} = {:>15.5f} + {:>15.5f} - {:>15.5f} [{:>15.5f}]'.format(labels[i], median_step[i], high_err[i], low_err[i], best_step[i]  ))
+	print('---------------------------------------------------------------------------------------')
+	print('-                         Calculated parameters                                       -')
+	print('---------------------------------------------------------------------------------------')
+	rho =  rho_func(tmp[:,4], tmp[:,5])
+	rho_mask = (rho > 0) & (rho < 3)
+	best_idx_rho = np.argmax(tmp[:,-1][rho_mask])
+	print('{:>15} = {:>15.5f} + {:>15.5f} - {:>15.5f} [{:>15.5f}]'.format('Rho [sun]', np.median(rho[rho_mask]), np.percentile(rho[rho_mask], 68)-np.median(rho[rho_mask]), np.median(rho[rho_mask]) - np.percentile(rho[rho_mask], 100-68), rho[rho_mask][best_idx_rho]  ))
+
+
+	t_f = transit_duration(tmp[:,4], tmp[:,5], tmp[:,6], tmp[:,9]) # in seconds
+	best_t_f = t_f[best_idx]
+	print('{:>15} = {:>15} + {:>15} - {:>15} [{:>15}]'.format('Duration', str(datetime.timedelta(seconds=np.median(t_f))), str(datetime.timedelta(seconds=np.percentile(t_f, 68)-np.median(t_f))), str(datetime.timedelta(seconds=np.median(t_f) - np.percentile(t_f, 100-68))), str(datetime.timedelta(seconds=t_f[best_idx_rho]))  ))
+
+	t_f, best_t_f = t_f/3600, best_t_f / 3600
+	print('{:>15} = {:>15.2f} + {:>15.2f} - {:>15.2f} [{:>15.2f}]'.format('Duration', np.median(t_f), np.percentile(t_f, 68)-np.median(t_f), np.median(t_f) - np.percentile(t_f, 100-68), t_f[best_idx_rho]  ))
+	print('---------------------------------------------------------------------------------------')
+	
+	# trim tmp for corner
+	#for i in range(tmp.shape[1]): 
+	#	mask = (tmp[:,i] <  (np.median(tmp[:,i]) - 1*np.std(tmp[:,i]))) & (tmp[:,i] >  (np.median(tmp[:,i]) + 1*np.std(tmp[:,i])))
+	#	tmp[:,i][mask] = np.nan
+	
+	fig_corner = corner.corner(tmp[:, 3:-1], labels=labels, truths=best_step )
+
+
+	fig_corner.savefig('ngtsfit_corner_fitted_parameters.png')
+	
+	tmp11 = np.array([np.clip(rho, 0, 3.).tolist(), (np.clip(t_f, np.median(t_f) - 1*np.std(t_f) , np.median(t_f) + 1*np.std(t_f)) ).tolist()]).T
+	fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$', r'T$_{\rm dur}$ [hr]'], truths=[rho[best_idx], t_f[best_idx]] )
+
+	fig_corner2.savefig('ngtsfit_corner_calculated_parameters.png')
+	
+	
+
+
+
+	
+	t_width = -1
+	if (len(sys.argv) > 2):
+		#if (len(sys.argv) > 4): alpha = 0.1# float(sys.argv[4])
+		#else : alpha = 1.
+		alpha = 0.1
+
+		# Plot 1 min bin
+		time, mag, mag_err = np.loadtxt(sys.argv[2]).T
+		fig_phot, ax_phot = plt.subplots(figsize=(19,5))
+		ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3]), mag, c='k', alpha = alpha, s=5)
+		ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3])-1, mag, c='k', alpha = alpha, s=5)
+		scatter2 = np.std(mag)
+		
+	
+		#plot 30 minute bin
+		time, mag, mag_err = np.loadtxt(sys.argv[3]).T
+		ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3]), mag, c='r', s=5)
+		ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3])-1, mag, c='r', s=5)
+		scatter30 = np.std(mag)
+
+		ax_phot.invert_yaxis()
+		ax_phot.set_ylabel('Mag')
+		ax_phot.set_xlabel('Phase')
+		ax_phot.set_xlim(-0.4,0.4)
+
+		phase_time = np.linspace(-0.5,0.5, 50000)		
+		t_zero = best_step[3-3]
+		period = best_step[4-3]
+		radius_1 = best_step[5-3]
+		k = best_step[6-3]
+		h1 = best_step[7-3]
+		h2 = best_step[8-3]
+		b = best_step[9-3]
+		zp = best_step[10-3]
+		incl = 180.*np.arccos(radius_1*b)/np.pi
+		ld_1 = htoc1_(h1,h2)
+		ld_2 = htoc2__(ld_1,h2)
+		model = zp - 2.5*np.log10( lc(phase_time, radius_1 = radius_1, k=k, incl=incl, ldc_1_1=ld_1, ldc_1_2 = ld_2, light_3=0.0)  )
+		ax_phot.plot(phase_time, model)
+
+		tdepth = np.max(model) - np.min(model)
+
+		ax_phot.set_ylim(2*tdepth,-2*tdepth)
+		ax_phot.set_title(' 2 minute RMS : {:.2f} mmag.\n30 minute RMS : {:.2f} mmag.\n transit depth : {:.2f} mmag.'.format(1000*scatter2, 1000*scatter30, 1000*tdepth))
+		
+
+		fig_phot.savefig('ngtsfit_best_model.png')
+	
+
+
+	# Now plot other things
+	if len(sys.argv) > 4:
+		print('Looking up star in Gaia...')
+
+
+		coord = SkyCoord(ra=float(sys.argv[4]), dec=float(sys.argv[5]), unit=(u.degree, u.degree), frame='icrs')
+		width = u.Quantity(0.1, u.deg)
+		height = u.Quantity(0.1, u.deg)
+		r = Gaia.query_object_async(coordinate=coord, width=width, height=height)
+		stellar_radius = r['radius_val'][0]
+		planet_radius = stellar_radius*best_step[3]
+		low_err_r = low_err[3]*planet_radius
+		high_err_r = high_err[3]*planet_radius
+
+		print('Stellar radius = {:.5f} R_sun'.format(stellar_radius))
+		print('Planet radius  = {:.5f} + {:.5f} - {:.5f} R_Sun'.format(planet_radius, high_err_r, low_err_r) )
+		print('               = {:.5f} + {:.5f} - {:.5f} R_Jup'.format(planet_radius/R_jup_R_sun, high_err_r/R_jup_R_sun, low_err_r/R_jup_R_sun) )
+		print('---------------------------------------------------------------------------------------')
+
+		f4, ax4 = plt.subplots(figsize = (10,7))
+		plt.loglog(exodata['orbital_period'], exodata['radius'], 'ko', alpha = 0.3, markersize=2)
+		ax4.set_xlabel('Orbital Period (day)')
+		ax4.set_ylabel(r'Planetary Radius (R$_{\rm Jup}$)')
+		plt.errorbar(best_step[1], planet_radius/R_jup_R_sun, yerr = high_err_r/R_jup_R_sun, color='red', fmt='.', markersize='10', ecolor='red',capsize=4, elinewidth=2)
+		f4.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
+		f4.savefig('ngtsfit_corner_radius_period.png')
+
+
+		f5, ax5 = plt.subplots(figsize = (10,7))
+		plt.loglog(exodata['semi_major_axis'], exodata['star_radius'], 'ko', alpha = 0.3, markersize=2)
+		plt.plot(stellar_radius / best_step[2] / 215.032, stellar_radius, 'ro', markersize='10')
+		ax5.set_xlabel('Semi-major axis (au)')
+		ax5.set_ylabel(r'Host star Radius (R$_{\rm Sun}$)')
+		f5.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
+		f5.savefig('ngtsfit_corner_host_seperation.png')
+
+		plt.show()
