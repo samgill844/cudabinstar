@@ -71,9 +71,7 @@ void create_starting_positions(const double * theta,
     for (i=0; i < threads_per_block; i++)
     {
         for (k=0; k < ndim; k++)
-            if (k<(ndim-1)) p0[i*ndim + k] = theta[k] + scatter*sampleNormal_d();
-            else p0[i*ndim + k] = min(0., scatter*sampleNormal_d() );
-
+            p0[i*ndim + k] = theta[k] + scatter*sampleNormal_d();
     }
 
     // Now copy the starting points to each block
