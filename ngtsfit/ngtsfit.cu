@@ -372,7 +372,7 @@ int main(int argc, char* argv[])
     theta[5] =  ldc_2;
     theta[6] = 0.1;
     theta[7] =  0.;
-    theta[8] =  0.05;
+    theta[8] =  0.001;
 
     double loglik =     lc_loglike(time, LC, LC_ERR, theta[7],theta[8],
         theta[0], theta[1],
@@ -480,6 +480,8 @@ int main(int argc, char* argv[])
         // Now run
         printf("\n-----------------------------------");
         printf("\nCommencing Bayesian sampleing [GPU]\n"); fflush(stdout);
+        printf("Progress bar"); 
+
         start = clock();
         GPU_parallel_stretch_move_sampler<<<blocks, threads_per_block>>>(nsteps, ndim, nwalkers, blocks, threads_per_block, d_args, 
             d_loglikliehoods, d_positions,

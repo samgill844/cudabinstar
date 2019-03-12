@@ -48,7 +48,8 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
 
     lower = (int) floorf(j/threads_per_block)*threads_per_block;
     block = (int) lower / threads_per_block;
-       //printf("\nHello from walker %d", j);
+
+    //printf("\nHello from walker %d", j);
     // iterate over steps
     for (i=1; i < nsteps; i++)
     {
@@ -59,6 +60,8 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
         __syncthreads();
 
         // Now update the traisl position
+        Z = pow(((a - 1.) * curand_uniform(&devState[j]) + 1.), 2.) /a ;
+
         for (k=0; k < ndim; k++) 
         {
 
@@ -66,7 +69,6 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
                 index3d_previous = get_3D_index(i-1, j , k, nwalkers, ndim);
                 index3d_previous_ensemble = get_3D_index(i-1, index , k, nwalkers, ndim);
    
-                Z = pow(((a - 1.) * curand_uniform(&devState[j]) + 1.), 2.) /a ;
                 positions[index3d] = positions[index3d_previous_ensemble]  - Z*(positions[index3d_previous_ensemble] -  positions[index3d_previous]);   
         }
 
@@ -79,7 +81,8 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
         // Assess trail position
         if (loglikliehoods[index2d] < loglikliehoods[index2d_previous])
         {
-                if ( curand_uniform(&devState[j]) > exp(loglikliehoods[index2d] - loglikliehoods[index2d_previous]))
+                //if ( curand_uniform(&devState[j]) > exp(loglikliehoods[index2d] - loglikliehoods[index2d_previous]))
+              if ( curand_uniform(&devState[j]) > pow(Z, ndim-1)*exp(loglikliehoods[index2d] - loglikliehoods[index2d_previous]) )
                 {
                     // Here, we got unlucky so revert
                     loglikliehoods[index2d] = loglikliehoods[index2d_previous];

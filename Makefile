@@ -8,5 +8,10 @@ all : cudalc cudamc ngtsfit
 
 
 clean : 
+	rm -f cudalc/*.o
+	rm -f cudamc/*.o
+	rm -f ngtsfit/*.o
+	rm -f ngtsfit/ngtsfit
+
 	rm -f include/*
 	rm -f lib/*
