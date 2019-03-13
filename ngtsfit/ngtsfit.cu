@@ -159,6 +159,8 @@ int main(int argc, char* argv[])
     double pcut = 0.1;
     double radius_1 = 0.2;
     double k = 0.2;
+    double zp = 0.;
+    double jitter = 0.001;
 
     // Limb-darkening parameters
     int ld_law = 0;
@@ -197,6 +199,8 @@ int main(int argc, char* argv[])
             {"pcut",         required_argument,       0, 'c'},
             {"radius_1",     required_argument,       0, 'r'},
             {"k",            required_argument,       0, 'k'},
+            {"zp",            required_argument,       0, 'z'},
+            {"jitter",            required_argument,  0, 'j'},
 
             {"ld_1",         required_argument,       0, 'l'},
             {"ldc_1",        required_argument,       0, 'q'},
@@ -257,6 +261,14 @@ int main(int argc, char* argv[])
 
         case 'k':
             sscanf(optarg,"%lf",&k);
+            break;
+
+        case 'z':
+            sscanf(optarg,"%lf",&zp);
+            break;
+
+        case 'j':
+            sscanf(optarg,"%lf",&jitter);
             break;
 
         case 'l':
@@ -329,6 +341,9 @@ int main(int argc, char* argv[])
     printf("\n\tperiod : %f", period);
     printf("\n\tradius_1 : %f", radius_1);
     printf("\n\tk : %f", k);
+    printf("\n\tzp : %f", zp);
+    printf("\n\tjitter : %f", jitter);
+
     printf("\n\tldc_1 : %f", ldc_1);
     printf("\n\tldc_2 : %f", ldc_2);
 
@@ -371,8 +386,8 @@ int main(int argc, char* argv[])
     theta[4] = ldc_1;
     theta[5] =  ldc_2;
     theta[6] = 0.1;
-    theta[7] =  0.;
-    theta[8] =  0.001;
+    theta[7] =  zp;
+    theta[8] =  jitter;
 
     double loglik =     lc_loglike(time, LC, LC_ERR, theta[7],theta[8],
         theta[0], theta[1],
