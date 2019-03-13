@@ -82,7 +82,7 @@ if __name__ =="__main__":
 	#for i in range(tmp.shape[1]): 
 	#	mask = (tmp[:,i] <  (np.median(tmp[:,i]) - 1*np.std(tmp[:,i]))) & (tmp[:,i] >  (np.median(tmp[:,i]) + 1*np.std(tmp[:,i])))
 	#	tmp[:,i][mask] = np.nan
-	
+	'''
 	fig_corner = corner.corner(tmp[:, 3:-1], labels=labels, truths=best_step )
 
 
@@ -92,12 +92,12 @@ if __name__ =="__main__":
 	fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$', r'T$_{\rm dur}$ [hr]'], truths=[rho[best_idx], t_f[best_idx]] )
 
 	fig_corner2.savefig('ngtsfit_corner_calculated_parameters.png')
-	
+	'''
 	
 
 
 
-	
+	'''
 	t_width = -1
 	if (len(sys.argv) > 2):
 		#if (len(sys.argv) > 4): alpha = 0.1# float(sys.argv[4])
@@ -145,7 +145,7 @@ if __name__ =="__main__":
 		
 
 		fig_phot.savefig('ngtsfit_best_model.png')
-	
+	'''
 
 
 	# Now plot other things
@@ -168,11 +168,15 @@ if __name__ =="__main__":
 		print('---------------------------------------------------------------------------------------')
 
 		f4, ax4 = plt.subplots(figsize = (10,7))
-		plt.loglog(exodata['orbital_period'], exodata['radius'], 'ko', alpha = 0.3, markersize=2)
+		plt.loglog(exodata['orbital_period'], exodata['radius'], 'ko', alpha = 0.3, markersize=2, label='http://exoplanet.eu/')
 		ax4.set_xlabel('Orbital Period (day)')
 		ax4.set_ylabel(r'Planetary Radius (R$_{\rm Jup}$)')
-		plt.errorbar(best_step[1], planet_radius/R_jup_R_sun, yerr = high_err_r/R_jup_R_sun, color='red', fmt='.', markersize='10', ecolor='red',capsize=4, elinewidth=2)
+		plt.errorbar(best_step[1], planet_radius/R_jup_R_sun, yerr = high_err_r/R_jup_R_sun, color='red', fmt='.', markersize='10', ecolor='red',capsize=4, elinewidth=2, label=None)
 		f4.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
+		plt.axhline(1.0, linestyle = '--', color = 'r', alpha = 0.6, label = 'Jupiter')
+		plt.axhline(0.3444, linestyle = '--', color = 'b', alpha = 0.6, label = 'Neptune')
+		plt.axhline(0.08921, linestyle = '--', color = 'g', alpha = 0.6, label = 'Earth')
+		plt.legend()
 		f4.savefig('ngtsfit_corner_radius_period.png')
 
 
@@ -184,4 +188,4 @@ if __name__ =="__main__":
 		f5.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
 		f5.savefig('ngtsfit_corner_host_seperation.png')
 
-		plt.show()
+	plt.show()
