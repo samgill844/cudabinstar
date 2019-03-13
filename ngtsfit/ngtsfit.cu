@@ -276,7 +276,7 @@ int main(int argc, char* argv[])
         case 'u':
             sscanf(optarg,"%lf",&b);
             break;
-            
+
         case 'l':
             sscanf(optarg,"%d",&ld_law);
             break;
@@ -349,6 +349,7 @@ int main(int argc, char* argv[])
     printf("\n\tk : %f", k);
     printf("\n\tzp : %f", zp);
     printf("\n\tjitter : %f", jitter);
+    printf("\n\timpact : %f", b);
 
     printf("\n\tldc_1 : %f", ldc_1);
     printf("\n\tldc_2 : %f", ldc_2);
