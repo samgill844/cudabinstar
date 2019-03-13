@@ -69,7 +69,7 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
                 index3d_previous = get_3D_index(i-1, j , k, nwalkers, ndim);
                 index3d_previous_ensemble = get_3D_index(i-1, index , k, nwalkers, ndim);
    
-                positions[index3d] = positions[index3d_previous_ensemble]  - Z*(positions[index3d_previous_ensemble] -  positions[index3d_previous]);   
+                positions[index3d] = positions[index3d_previous_ensemble]  - Z*(positions[index3d_previous] - positions[index3d_previous_ensemble]);   
         }
 
         // Now evalute the trial positions
