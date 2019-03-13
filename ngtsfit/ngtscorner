@@ -82,7 +82,7 @@ if __name__ =="__main__":
 	#for i in range(tmp.shape[1]): 
 	#	mask = (tmp[:,i] <  (np.median(tmp[:,i]) - 1*np.std(tmp[:,i]))) & (tmp[:,i] >  (np.median(tmp[:,i]) + 1*np.std(tmp[:,i])))
 	#	tmp[:,i][mask] = np.nan
-	'''
+	
 	fig_corner = corner.corner(tmp[:, 3:-1], labels=labels, truths=best_step )
 
 
@@ -92,12 +92,12 @@ if __name__ =="__main__":
 	fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$', r'T$_{\rm dur}$ [hr]'], truths=[rho[best_idx], t_f[best_idx]] )
 
 	fig_corner2.savefig('ngtsfit_corner_calculated_parameters.png')
-	'''
+	
 	
 
 
 
-	'''
+	
 	t_width = -1
 	if (len(sys.argv) > 2):
 		#if (len(sys.argv) > 4): alpha = 0.1# float(sys.argv[4])
@@ -145,7 +145,7 @@ if __name__ =="__main__":
 		
 
 		fig_phot.savefig('ngtsfit_best_model.png')
-	'''
+	
 
 
 	# Now plot other things
