@@ -19,5 +19,5 @@ install :
 	mv ngtsfit ~/bin
 	cp ngtsbin ~/bin
 	cp ngtscorner ~/bin
-	cp ngtstry ~/bin
-	cp exoplanet.eu_catalog.csv ~/bin
+	#cp ngtstry ~/bin
+	#cp exoplanet.eu_catalog.csv ~/bin

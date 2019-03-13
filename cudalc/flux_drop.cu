@@ -54,7 +54,9 @@ __device__ __host__ double q2(double z, double p, double c, double a, double g, 
 	double K1 = (d0-rb*d1)*acos(d) + ((rb*d+(2./3.)*(1-d*d))*d1 - d*d0)*sqrt(clip(1-d*d,0.0,1.0));
 	double K2 = (1/3)*c*a*pow(sb,(g+0.5))*(1-d);
 	if (J1 > 1) J1 = 0;
-    return 1 - I_0*(J1 - J2 + K1 - K2);
+    double FF =  1 - I_0*(J1 - J2 + K1 - K2);
+    if (FF < 0.9) FF=1.0;
+    return FF;
 }
 
 
