@@ -161,6 +161,7 @@ int main(int argc, char* argv[])
     double k = 0.2;
     double zp = 0.;
     double jitter = 0.001;
+    double b = 0.1;
 
     // Limb-darkening parameters
     int ld_law = 0;
@@ -201,6 +202,7 @@ int main(int argc, char* argv[])
             {"k",            required_argument,       0, 'k'},
             {"zp",            required_argument,       0, 'z'},
             {"jitter",            required_argument,  0, 'j'},
+            {"impact",            required_argument,  0, 'u'},
 
             {"ld_1",         required_argument,       0, 'l'},
             {"ldc_1",        required_argument,       0, 'q'},
@@ -271,6 +273,10 @@ int main(int argc, char* argv[])
             sscanf(optarg,"%lf",&jitter);
             break;
 
+        case 'u':
+            sscanf(optarg,"%lf",&b);
+            break;
+            
         case 'l':
             sscanf(optarg,"%d",&ld_law);
             break;
@@ -385,7 +391,7 @@ int main(int argc, char* argv[])
     theta[3] =  k;
     theta[4] = ldc_1;
     theta[5] =  ldc_2;
-    theta[6] = 0.1;
+    theta[6] = b;
     theta[7] =  zp;
     theta[8] =  jitter;
 
