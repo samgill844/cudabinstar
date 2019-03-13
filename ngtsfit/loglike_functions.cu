@@ -44,8 +44,8 @@ __device__ double lnlike( double * positions, int index3d, double ** args )
     // h2_ref
     // 
     /*             */
-    if ( positions[index3d+0] < args[3][1] -0.04*args[3][2]         ||  positions[index3d+0] > args[3][1]+0.04*args[3][2])          return neginfty();
-    if ( positions[index3d+1] <  args[3][2]-0.01 ||  positions[index3d+1] > args[3][2]+0.01) return neginfty();
+    if ( positions[index3d+0] < args[3][1] -0.005*args[3][2]         ||  positions[index3d+0] > args[3][1]+0.005*args[3][2])          return neginfty();
+    if ( positions[index3d+1] <  args[3][2]-0.001 ||  positions[index3d+1] > args[3][2]+0.001) return neginfty();
     if ( positions[index3d+2] < 0         ||  positions[index3d+2] > 0.8)         return neginfty();
     if ( positions[index3d+3] < 0         ||  positions[index3d+3] > 0.8)         return neginfty();
     if ( positions[index3d+4] < 0.4         ||  positions[index3d+4] > 0.9)         return neginfty();

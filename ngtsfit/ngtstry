@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import numpy as np
+import sys
+import corner
+import matplotlib.pyplot as plt
+from gpuastro.binarystar import lc
+from gpuastro.utilities import htoc1_, htoc2__
+import astropy.units as u
+
+def phaser(time, t_zero, period) : return ((time - t_zero)/period) - np.floor((time - t_zero)/period)
+
+if __name__=='__main__':
+    if len(sys.argv) < 2 : print("Usage is ngtstry filename t_zero period radius_1 k")
+    
+    t_zero = float(sys.argv[2])
+    period = float(sys.argv[3])
+    radius_1 = float(sys.argv[4])
+    k = float(sys.argv[5])
+    zp = float(sys.argv[6])
+    print('File : ', sys.argv[1])
+    print('t_zero : ',t_zero)
+    print('period : ',period)
+    print('radius_1 : ', radius_1)
+    print('k : ', k)
+    print('zp : ', zp)
+
+    time, mag, mag_err = np.loadtxt(sys.argv[1]).T
+    fig_phot, ax_phot = plt.subplots(figsize=(19,5))
+    ax_phot.scatter(phaser(time, t_zero, period), mag, c='k', alpha = 0.8, s=5)
+    ax_phot.scatter(phaser(time, t_zero, period)-1, mag, c='k', alpha = 0.8, s=5)
+
+    phase = np.linspace(-1,1,10000)
+    plt.plot(phase, zp - 2.5*np.log10( lc(phase, radius_1 = radius_1, k=k)), 'r')
+    plt.xlabel('Phase')
+    plt.ylabel('Mag')
+    plt.gca().invert_yaxis()
+    plt.show()

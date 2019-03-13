@@ -88,7 +88,7 @@ if __name__ =="__main__":
 
 	fig_corner.savefig('ngtsfit_corner_fitted_parameters.png')
 	
-	tmp11 = np.array([np.clip(rho, 0, 3.).tolist(), (np.clip(t_f, np.median(t_f) - 1*np.std(t_f) , np.median(t_f) + 1*np.std(t_f)) ).tolist()]).T
+	tmp11 = np.array([np.clip(rho, 0, 3.).tolist(), t_f.tolist()]).T
 	fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$', r'T$_{\rm dur}$ [hr]'], truths=[rho[best_idx], t_f[best_idx]] )
 
 	fig_corner2.savefig('ngtsfit_corner_calculated_parameters.png')
