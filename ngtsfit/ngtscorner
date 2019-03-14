@@ -46,18 +46,21 @@ if __name__ =="__main__":
 	
 	tmp = np.loadtxt(sys.argv[1],  delimiter=',')
 	labels = ['t_zero [HJD]', 'Period [d]', 'R1/a', 'R2/R1', 'h1', 'h2', 'b', 'zero-point', 'Jitter [mag.]']
-	
+	labels3 = ['\n\nT$_0$', '\n\nP [d]', '\n\nR$_*$/a', '\n\nR$_2$/R$_*$', '\n\nh$_1$', '\n\nh$_2$', '\n\nb', '\n\n$z_p$', '\n\n$\sigma$ [mag.]']
+
 	best_idx = np.argmax(tmp[:,-1])
 	best_step = tmp[best_idx][3:-1]
 	median_step = np.median(tmp, axis=0)[3:-1]
-	low_err = median_step - np.percentile(tmp, 100-68, axis=0)[3:-1]
-	high_err = np.percentile(tmp, 68, axis=0)[3:-1] - median_step
+	low_err = median_step - np.percentile(tmp, 16, axis=0)[3:-1]
+	high_err = np.percentile(tmp, 84, axis=0)[3:-1] - median_step
 
 	# Now report
 	print('---------------------------------------------------------------------------------------')
 	print('-                           Fitted parameters                                         -')
 	print('---------------------------------------------------------------------------------------')
 	print('Best step is index {} at step {} walker {} (block {})            [L = {:.4f}  ]'.format(int(best_idx), int(tmp[best_idx][0]), int(tmp[best_idx][2]), int(tmp[best_idx][1]), tmp[best_idx][-1]))
+	print('Corner plots -> green = median value    red = highest log-likliehood value             ')
+	print('{:>15} = {:>15} + {:>15} - {:>15} [{:>15}]'.format('Parameter', 'median value', '','', 'best value'))
 	print('---------------------------------------------------------------------------------------')
 	for i in range(len(labels)):
 		print('{:>15} = {:>15.5f} + {:>15.5f} - {:>15.5f} [{:>15.5f}]'.format(labels[i], median_step[i], high_err[i], low_err[i], best_step[i]  ))
@@ -67,31 +70,74 @@ if __name__ =="__main__":
 	rho =  rho_func(tmp[:,4], tmp[:,5])
 	rho_mask = (rho > 0) & (rho < 3)
 	best_idx_rho = np.argmax(tmp[:,-1][rho_mask])
-	print('{:>15} = {:>15.5f} + {:>15.5f} - {:>15.5f} [{:>15.5f}]'.format('Rho [sun]', np.median(rho[rho_mask]), np.percentile(rho[rho_mask], 68)-np.median(rho[rho_mask]), np.median(rho[rho_mask]) - np.percentile(rho[rho_mask], 100-68), rho[rho_mask][best_idx_rho]  ))
+	print('{:>15} = {:>15.5f} + {:>15.5f} - {:>15.5f} [{:>15.5f}]'.format('Rho [sun]', np.median(rho[rho_mask]), np.percentile(rho[rho_mask], 84)-np.median(rho[rho_mask]), np.median(rho[rho_mask]) - np.percentile(rho[rho_mask], 16), rho[rho_mask][best_idx_rho]  ))
 
 
 	t_f = transit_duration(tmp[:,4], tmp[:,5], tmp[:,6], tmp[:,9]) # in seconds
 	best_t_f = t_f[best_idx]
-	print('{:>15} = {:>15} + {:>15} - {:>15} [{:>15}]'.format('Duration', str(datetime.timedelta(seconds=np.median(t_f))), str(datetime.timedelta(seconds=np.percentile(t_f, 68)-np.median(t_f))), str(datetime.timedelta(seconds=np.median(t_f) - np.percentile(t_f, 100-68))), str(datetime.timedelta(seconds=t_f[best_idx_rho]))  ))
+	print('{:>15} = {:>15} + {:>15} - {:>15} [{:>15}]'.format('Duration', str(datetime.timedelta(seconds=np.median(t_f))), str(datetime.timedelta(seconds=np.percentile(t_f, 84)-np.median(t_f))), str(datetime.timedelta(seconds=np.median(t_f) - np.percentile(t_f, 16))), str(datetime.timedelta(seconds=t_f[best_idx_rho]))  ))
 
 	t_f, best_t_f = t_f/3600, best_t_f / 3600
-	print('{:>15} = {:>15.2f} + {:>15.2f} - {:>15.2f} [{:>15.2f}]'.format('Duration', np.median(t_f), np.percentile(t_f, 68)-np.median(t_f), np.median(t_f) - np.percentile(t_f, 100-68), t_f[best_idx_rho]  ))
+	print('{:>15} = {:>15.2f} + {:>15.2f} - {:>15.2f} [{:>15.2f}]'.format('Duration', np.median(t_f), np.percentile(t_f, 84)-np.median(t_f), np.median(t_f) - np.percentile(t_f, 16), t_f[best_idx_rho]  ))
 	print('---------------------------------------------------------------------------------------')
 	
-	# trim tmp for corner
-	#for i in range(tmp.shape[1]): 
-	#	mask = (tmp[:,i] <  (np.median(tmp[:,i]) - 1*np.std(tmp[:,i]))) & (tmp[:,i] >  (np.median(tmp[:,i]) + 1*np.std(tmp[:,i])))
-	#	tmp[:,i][mask] = np.nan
+
 	
-	fig_corner = corner.corner(tmp[:, 3:-1], labels=labels, truths=best_step )
+	fig_corner = corner.corner(tmp[:, 3:-1], labels=labels3, quantiles=(0.16, 0.84), levels=(1-np.exp(-0.5),)  )
+
+	ndim=9
+	axes = np.array(fig_corner.axes).reshape((ndim, ndim))
+
+	for i in range(ndim):
+		ax = axes[i, i]
+		ax.axvline(median_step[i], color="g")
+		ax.axvline(best_step[i], color="r")
+
+	# Loop over the histograms
+	for yi in range(ndim):
+		for xi in range(yi):
+			ax = axes[yi, xi]
+			ax.axvline(median_step[xi], color="g")
+			ax.axvline(best_step[xi], color="r")
+			ax.axhline(median_step[yi], color="g")
+			ax.axhline(best_step[yi], color="r")
+			ax.plot(median_step[xi], median_step[yi], "sg")
+			ax.plot(best_step[xi], best_step[yi], "sr")
 
 
 	fig_corner.savefig('ngtsfit_corner_fitted_parameters.png')
+	fig_corner.subplots_adjust(left=0.04, bottom=0.08, right=0.997, top=1, wspace=0, hspace=0)
+	
 	
 	tmp11 = np.array([np.clip(rho, 0, 3.).tolist(), t_f.tolist()]).T
-	fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$', r'T$_{\rm dur}$ [hr]'], truths=[rho[best_idx], t_f[best_idx]] )
+
+	fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$ [Sun]', r'T$_{\rm dur}$ [hr]'], quantiles=(0.16, 0.84), levels=(1-np.exp(-0.5),) )
+	ndim=2
+	axes = np.array(fig_corner2.axes).reshape((ndim, ndim))
+
+
+	# Loop over the histograms
+	best__ = [rho[best_idx], t_f[best_idx]]
+	median__ = [np.median(rho), np.median(t_f)]
+
+	for i in range(ndim):
+		ax = axes[i, i]
+		ax.axvline(median__[i], color="g")
+		ax.axvline(best__[i], color="r")
+
+	for yi in range(ndim):
+		for xi in range(yi):
+			ax = axes[yi, xi]
+			ax.axvline(median__[xi], color="g")
+			ax.axvline(best__[xi], color="r")
+			ax.axhline(median__[yi], color="g")
+			ax.axhline(best__[yi], color="r")
+			ax.plot(median__[xi], median__[yi], "sg")
+			ax.plot(best__[xi], best__[yi], "sr")
 
 	fig_corner2.savefig('ngtsfit_corner_calculated_parameters.png')
+	fig_corner2.subplots_adjust(left=0.16, bottom=0.16, right=0.997, top=1, wspace=0, hspace=0)
+
 	
 	
 
@@ -135,7 +181,7 @@ if __name__ =="__main__":
 		incl = 180.*np.arccos(radius_1*b)/np.pi
 		ld_1 = htoc1_(h1,h2)
 		ld_2 = htoc2__(ld_1,h2)
-		model = zp - 2.5*np.log10( lc(phase_time, radius_1 = radius_1, k=k, incl=incl, ldc_1_1=ld_1, ldc_1_2 = ld_2, light_3=0.0)  )
+		model = zp - 2.5*np.log10( lc(phase_time, radius_1 = radius_1, k=k, incl=incl, ldc_1_1=ld_1, ldc_1_2 = ld_2, light_3=0.)  )
 		ax_phot.plot(phase_time, model)
 
 		tdepth = np.max(model) - np.min(model)
@@ -143,11 +189,12 @@ if __name__ =="__main__":
 		ax_phot.set_ylim(2*tdepth,-2*tdepth)
 		ax_phot.set_title(' 2 minute RMS : {:.2f} mmag.\n30 minute RMS : {:.2f} mmag.\n transit depth : {:.2f} mmag.'.format(1000*scatter2, 1000*scatter30, 1000*tdepth))
 		
+		fig_phot.subplots_adjust(left=0.04, bottom=0.085, right=0.997, top=1, wspace=0, hspace=0)
 
 		fig_phot.savefig('ngtsfit_best_model.png')
 	
 
-
+	
 	# Now plot other things
 	if len(sys.argv) > 4:
 		print('Looking up star in Gaia...')
@@ -177,7 +224,7 @@ if __name__ =="__main__":
 		plt.axhline(0.3444, linestyle = '--', color = 'b', alpha = 0.6, label = 'Neptune')
 		plt.axhline(0.08921, linestyle = '--', color = 'g', alpha = 0.6, label = 'Earth')
 		plt.legend()
-		f4.savefig('ngtsfit_corner_radius_period.png')
+		f4.savefig('ngtsfit_radius_period.png')
 
 
 		f5, ax5 = plt.subplots(figsize = (10,7))
@@ -186,6 +233,6 @@ if __name__ =="__main__":
 		ax5.set_xlabel('Semi-major axis (au)')
 		ax5.set_ylabel(r'Host star Radius (R$_{\rm Sun}$)')
 		f5.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
-		f5.savefig('ngtsfit_corner_host_seperation.png')
-
+		f5.savefig('ngtsfit_host_seperation.png')
+	
 	plt.show()

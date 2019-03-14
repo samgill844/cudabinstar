@@ -373,7 +373,6 @@ int main(int argc, char* argv[])
      Part 2 - initialise theta
      ---------------------------*/
     double * theta;
-    double ** args, **d_args;
     int ndim=9;
     theta = (double *) malloc(ndim*sizeof(double));
     // 0 : t_zero
@@ -411,6 +410,7 @@ int main(int argc, char* argv[])
     Part 3 - configure the arguments for either GPU ot CPU
     ---------------------------*/
     printf("Configuring arguments for the "); fflush(stdout);
+    double ** args, **d_args;
     switch(CPU_OR_GPU){ case 1 : printf("GPU... "); break;  case 0 : printf("CPU... "); break;}
 
     double * tmpp;
@@ -540,13 +540,17 @@ int main(int argc, char* argv[])
 
 
     // free up device memory
-    cudaFree(d_positions);
-    cudaFree(d_loglikliehoods);
-    cudaFree(devState);
-    cudaFree(d_time);
-    cudaFree(d_LC);
-    cudaFree(d_LC_ERR);
-    cudaFree(d_args);
+    if (CPU_OR_GPU)
+    {
+        cudaFree(d_positions);
+        cudaFree(d_loglikliehoods);
+        cudaFree(devState);
+        cudaFree(d_time);
+        cudaFree(d_LC);
+        cudaFree(d_LC_ERR);
+        cudaFree(d_args);
+    }
+
 
     //historgram_plot_2_axis();
     
