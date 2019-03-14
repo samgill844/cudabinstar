@@ -235,4 +235,4 @@ if __name__ =="__main__":
 		f5.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
 		f5.savefig('ngtsfit_host_seperation.png')
 	
-	plt.show()
+	plt.close()
