@@ -106,7 +106,7 @@ if __name__ =="__main__":
 
 
 	fig_corner.savefig('ngtsfit_corner_fitted_parameters.png')
-	fig_corner.subplots_adjust(left=0.04, bottom=0.08, right=0.997, top=1, wspace=0, hspace=0)
+	fig_corner.subplots_adjust(left=0.04, bottom=0.09, right=0.997, top=1, wspace=0, hspace=0)
 	
 	
 	tmp11 = np.array([np.clip(rho, 0, 3.).tolist(), t_f.tolist()]).T
