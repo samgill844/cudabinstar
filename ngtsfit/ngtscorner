@@ -58,7 +58,7 @@ if __name__ =="__main__":
 	print('---------------------------------------------------------------------------------------')
 	print('-                           Fitted parameters                                         -')
 	print('---------------------------------------------------------------------------------------')
-	print('Best step is index {} at step {} walker {} (block {})            [L = {:.4f}  ]'.format(int(best_idx), int(tmp[best_idx][0]), int(tmp[best_idx][2]), int(tmp[best_idx][1]), tmp[best_idx][-1]))
+	print('Best step is index {} at step {} walker {} (block {})    [L = {:.4f}  ]'.format(int(best_idx), int(tmp[best_idx][0]), int(tmp[best_idx][2]), int(tmp[best_idx][1]), tmp[best_idx][-1]))
 	print('Corner plots -> green = median value    red = highest log-likliehood value             ')
 	print('{:>15} = {:>15} + {:>15} - {:>15} [{:>15}]'.format('Parameter', 'median value', '','', 'best value'))
 	print('---------------------------------------------------------------------------------------')
@@ -104,9 +104,8 @@ if __name__ =="__main__":
 			ax.plot(median_step[xi], median_step[yi], "sg")
 			ax.plot(best_step[xi], best_step[yi], "sr")
 
-
+	fig_corner.subplots_adjust(left=0.04, bottom=0.06, right=0.997, top=1, wspace=0, hspace=0)
 	fig_corner.savefig('ngtsfit_corner_fitted_parameters.png')
-	fig_corner.subplots_adjust(left=0.04, bottom=0.09, right=0.997, top=1, wspace=0, hspace=0)
 	
 	
 	tmp11 = np.array([np.clip(rho, 0, 3.).tolist(), t_f.tolist()]).T
