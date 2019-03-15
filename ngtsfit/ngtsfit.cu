@@ -528,9 +528,10 @@ int main(int argc, char* argv[])
         GPU_parallel_stretch_move_sampler<<<blocks, threads_per_block, 0 , streams[1]>>>(nsteps, ndim, nwalkers, blocks, threads_per_block, d_args, 
             d_loglikliehoods, d_positions,
             2.0,  devState, d_block_progress );
-        diff = clock() - start;
         cudaGetLastError();
         cudaDeviceSynchronize();
+        
+        diff = clock() - start;
         int msec = diff * 1000 / CLOCKS_PER_SEC;
         printf("Time taken %d seconds %d milliseconds", msec/1000, msec%1000);
         printf("\n-----------------------------------");fflush(stdout);
