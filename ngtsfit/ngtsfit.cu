@@ -8,7 +8,6 @@
 #include <curand.h>
 #include <curand_kernel.h>
 
-
 #include "../include/sampler_helper.h"
 #include "../include/ensemble.h"
 #include "../include/lc.h"
@@ -147,6 +146,7 @@ int main(int argc, char* argv[])
     printf("\n-          NGTSfit V0.1            -");
     printf("\n-      samgill844@gmail.com        -");
     printf("\n------------------------------------");
+    printf("\e[?25l"); // stop blinking cursor
 
     // Filename
     char *input_filename = "ngts.lc";
