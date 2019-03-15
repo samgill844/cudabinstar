@@ -39,3 +39,6 @@ void create_curand_states(curandState *devState, int nwalkers);
 __global__ void reset_sampler(double * d_positions, double * d_loglikliehoods,
                             int ndim, int nwalkers, int nsteps,
                             int blocks, int threads_per_block);
+
+
+__global__ void sampler_progress(int blocks, int * block_progress);

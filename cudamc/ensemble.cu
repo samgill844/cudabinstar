@@ -33,7 +33,8 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 *****************************************/
 __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwalkers, int blocks, int threads_per_block, double ** args, 
                                             double * loglikliehoods, double * positions,
-                                            float a, curandState * devState)
+                                            float a, curandState * devState,
+                                            int * block_progress)
 {
     int i,j,k, index, index2d, index2d_previous, index3d, index3d_previous, index3d_previous_ensemble, lower, block;
     double Z;
@@ -94,7 +95,8 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
                     }
                 }
         }  
-        if (j==lower && i%10==1) printf("\rBlock %02d at %5.2f ", block+1, 100.*(float) (i-1.0) / (float) nsteps);
+        //if (j==lower && i%10==1) printf("\rBlock %02d at %5.2f ", block+1, 100.*(float) (i-1.0) / (float) nsteps);
+        block_progress[block] = (int) (100. * (float) i / (float) nsteps) + 1;
      }
 }
 

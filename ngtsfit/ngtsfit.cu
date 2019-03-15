@@ -492,6 +492,18 @@ int main(int argc, char* argv[])
         printf(" done."); fflush(stdout);
     }
 
+    /*---------------------------
+    Part 5 - Create the blocks to monitor progress
+    ---------------------------*/
+    int * d_block_progress;
+    int i;
+    if (CPU_OR_GPU==1)
+    {
+        int d_block_progress__[1] = {0};
+        gpuErrchk(cudaMalloc(&d_block_progress, blocks*sizeof(int))); 
+        for (i=0; i < blocks; i++) gpuErrchk(cudaMemcpy(&d_block_progress[i], &d_block_progress__, sizeof(int), cudaMemcpyHostToDevice));
+    }
+
 
     /*---------------------------
     Part 5 - Launch the sampler
@@ -499,15 +511,23 @@ int main(int argc, char* argv[])
     clock_t start, end;
     if (CPU_OR_GPU==1)
     {
+        cudaStream_t streams[2];
+        cudaStreamCreate(&streams[0]);
+        cudaStreamCreate(&streams[1]);
+
+
         // Now run
         printf("\n-----------------------------------");
         printf("\nCommencing Bayesian sampleing [GPU]\n"); fflush(stdout);
         printf("Progress bar"); 
 
+        // Start the progress bar
+        sampler_progress<<<1, 1, 0,streams[0] >>>(blocks, d_block_progress);
+
         start = clock();
-        GPU_parallel_stretch_move_sampler<<<blocks, threads_per_block>>>(nsteps, ndim, nwalkers, blocks, threads_per_block, d_args, 
+        GPU_parallel_stretch_move_sampler<<<blocks, threads_per_block, 0 , streams[1]>>>(nsteps, ndim, nwalkers, blocks, threads_per_block, d_args, 
             d_loglikliehoods, d_positions,
-            2.0,  devState);
+            2.0,  devState, d_block_progress );
         end = clock();
         cudaGetLastError();
         cudaDeviceSynchronize();
@@ -524,7 +544,7 @@ int main(int argc, char* argv[])
     write_out_results(burn_in, nsteps, ndim, nwalkers,
         blocks, threads_per_block,
         d_positions, d_loglikliehoods, output_filename);
-    printf(" done."); fflush(stdout);
+    printf(" done.\n\n"); fflush(stdout);
 
 
     
@@ -549,6 +569,7 @@ int main(int argc, char* argv[])
         cudaFree(d_LC);
         cudaFree(d_LC_ERR);
         cudaFree(d_args);
+        cudaFree(d_block_progress);
     }
 
 

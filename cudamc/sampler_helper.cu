@@ -174,4 +174,62 @@ __global__ void reset_sampler(double * d_positions, double * d_loglikliehoods,
     d_loglikliehoods[in2_first] = d_loglikliehoods[in2_last];
 }
 
+/*************************/
+/* Sampler progress     */
+/*************************/
+__global__ void sampler_progress(int blocks, int * block_progress)
+{
+    int sum =0,i;
+    int cols = 8, count=0;
+    int rows = (int) ceil( (float) blocks / (float) cols);
+    // First create the space to print
+    for (i = 0; i< rows; i++) 
+        printf("\n");
 
+    
+    while (sum != 100*blocks)
+    {
+        // Busy the worker for 10000 cycles
+        clock_t start = clock();
+        clock_t now;
+        for (;;) 
+        {
+            now = clock();
+            clock_t cycles = now > start ? now - start : now + (0xffffffff - start);
+            if (cycles >= 10000) 
+            {
+                break;
+            }
+        }
+
+        ///printf("\rSum = %d out of %d", sum, 100*blocks);
+        
+        // First we have to go up the amount of rows
+        for (i = 0; i< rows-1; i++) 
+            printf("\033[1F");
+
+        //for (i = 0; i< rows; i++) 
+        //    printf("\n");
+        
+        
+        // First sum up the blocks progress
+        sum = 0;
+        for (i=0; i < blocks; i++) sum += block_progress[i];
+
+        count = 0;
+
+        // Now print the progress of each block in rows of 8
+        for (i=0; i < blocks; i++)
+        {
+            if (count==cols)
+            {
+                printf("\n"); // put us on the next line
+                count = 0;
+            }
+            printf("[%3d] ",block_progress[i]);
+            count ++;
+        }
+        
+    }
+    
+}
