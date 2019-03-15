@@ -508,7 +508,7 @@ int main(int argc, char* argv[])
     /*---------------------------
     Part 5 - Launch the sampler
     ---------------------------*/
-    clock_t start, end;
+    clock_t start, diff;
     if (CPU_OR_GPU==1)
     {
         cudaStream_t streams[2];
@@ -528,10 +528,11 @@ int main(int argc, char* argv[])
         GPU_parallel_stretch_move_sampler<<<blocks, threads_per_block, 0 , streams[1]>>>(nsteps, ndim, nwalkers, blocks, threads_per_block, d_args, 
             d_loglikliehoods, d_positions,
             2.0,  devState, d_block_progress );
-        end = clock();
+        diff = clock() - start;
         cudaGetLastError();
         cudaDeviceSynchronize();
-        //printf("\tfinished in %.2f s [%d models / s].", (double) (end-start), (int) (nsteps*nwalkers/(end-start))); 
+        int msec = diff * 1000 / CLOCKS_PER_SEC;
+        printf("Time taken %d seconds %d milliseconds", msec/1000, msec%1000);
         printf("\n-----------------------------------");fflush(stdout);
     }
 
