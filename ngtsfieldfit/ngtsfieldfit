@@ -70,7 +70,7 @@ if __name__ == '__main__':
     print(' ... done.')
     
     # Now we need to cycle all the indexes
-    for i in range(len(h[4].data))[:2]:
+    for i in range(len(h[4].data))[:]:
         # Get the object ID
         obj_id = h[4].data[i]["OBJ_ID"]
 
