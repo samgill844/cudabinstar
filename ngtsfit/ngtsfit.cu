@@ -519,7 +519,7 @@ int main(int argc, char* argv[])
         // Now run
         printf("\n-----------------------------------");
         printf("\nCommencing Bayesian sampleing [GPU]\n"); fflush(stdout);
-        printf("Progress bar"); 
+        printf("Progress of each block given below..."); 
 
         // Start the progress bar
         sampler_progress<<<1, 1, 0,streams[0] >>>(blocks, d_block_progress);
