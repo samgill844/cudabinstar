@@ -580,7 +580,8 @@ int main(int argc, char* argv[])
         cudaFree(d_block_progress);
     }
 
-
+    printf("\e[?25h"); // show the cursor again
+    
     //historgram_plot_2_axis();
     
     
