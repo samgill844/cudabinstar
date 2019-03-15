@@ -5,6 +5,7 @@ all : cudalc cudamc ngtsfit
 	(cd cudalc; make; make install)
 	(cd cudamc; make; make install)
 	(cd ngtsfit; make; make install)
+	(cd ngtsfieldfit; make install)
 
 
 clean : 

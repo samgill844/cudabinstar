@@ -3,3 +3,4 @@
 */*/*.o
 include/*.h
 lib/*.o
+ngtsfieldfit/*.fits
