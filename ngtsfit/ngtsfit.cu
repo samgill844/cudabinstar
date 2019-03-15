@@ -529,11 +529,15 @@ int main(int argc, char* argv[])
             d_loglikliehoods, d_positions,
             2.0,  devState, d_block_progress );
         cudaGetLastError();
-        cudaDeviceSynchronize();
-        
+        cudaDeviceSynchronize(); // make sure the kernel is done before carrying on.
+
+        printf("\n-----------------------------------");fflush(stdout);
         diff = clock() - start;
         int msec = diff * 1000 / CLOCKS_PER_SEC;
+        int number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
         printf("Time taken %d seconds %d milliseconds", msec/1000, msec%1000);
+        printf("Number of models per second : %d", number_of_models_per_second);
+        printf("Number of models per minute : %d", 60*number_of_models_per_second);
         printf("\n-----------------------------------");fflush(stdout);
     }
 
