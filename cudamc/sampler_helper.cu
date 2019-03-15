@@ -196,7 +196,7 @@ __global__ void sampler_progress(int blocks, int * block_progress)
         {
             now = clock();
             clock_t cycles = now > start ? now - start : now + (0xffffffff - start);
-            if (cycles >= 100000) 
+            if (cycles >= 1000000) 
             {
                 break;
             }
