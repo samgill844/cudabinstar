@@ -1,5 +1,5 @@
 cc=nvcc
-FLAGS= -O3 -Xcompiler -fpic  --default-stream per-thread
+FLAGS= -O3 -Xcompiler -fpic  --default-stream per-thread  -Xptxas -O3
 SHARED_OBJECTS = ../lib
 
 all : ngtsfit

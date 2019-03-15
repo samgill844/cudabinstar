@@ -6,7 +6,7 @@
 #include "flux_drop.h"
 
 
-__host__ __device__ void lc(double * time, double * LC,
+__host__ __device__ void lc(const double * time, double * LC,
                         double t_zero, double period,
                         double radius_1, double k ,
                         double fs, double fc, 
@@ -56,7 +56,7 @@ __host__ __device__ void lc(double * time, double * LC,
 }
 
 
-__host__ __device__ double lc_loglike(double * time, double * LC, double * LC_ERR, double zp, double J,
+__host__ __device__ double lc_loglike(const double * time, const double * LC, const double * LC_ERR, double zp, double J,
     double t_zero, double period,
     double radius_1, double k ,
     double fs, double fc, 

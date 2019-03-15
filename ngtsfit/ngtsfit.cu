@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
 
             {"nsteps",       required_argument,       0, 'n'},
             {"burn_in",      required_argument,       0, 'b'},
-            {"walkers",      required_argument,       0, 'w'},
+            {"walkers",      required_argument,       0, 'e'},
             {"threads_per_block", required_argument,       0, 'y'},
 
             {"device",       required_argument,       0, 'd'},

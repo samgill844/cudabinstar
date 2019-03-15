@@ -1,5 +1,5 @@
 cc=nvcc
-COMPILER_FLAGS = -O3 -Xcompiler -fpic -rdc=true --default-stream per-thread
+COMPILER_FLAGS = -O3 -Xcompiler -fpic -rdc=true --default-stream per-thread -Xptxas -O3 
 
 
 all : kepler.o rv.o flux_drop.o lc.o 

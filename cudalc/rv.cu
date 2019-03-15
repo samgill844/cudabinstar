@@ -4,7 +4,7 @@
 #include "kepler.h"
 #include "rv.h"
 
-__host__ __device__ void rv (double * time, 
+__host__ __device__ void rv (const double * time, 
         double t_zero, double period, 
         double K1, double fs, double fc, 
         double V0, double dV0, double VS, double VC, 
@@ -27,7 +27,7 @@ __host__ __device__ void rv (double * time,
 }
 
 
-__host__ __device__  double rv_loglike (double * time, double * RV, double *RV_ERR, double J,
+__host__ __device__  double rv_loglike (const double * time, double * RV, double *RV_ERR, double J,
     double t_zero, double period, 
     double K1, double fs, double fc, 
     double V0, double dV0, double VS, double VC, 
