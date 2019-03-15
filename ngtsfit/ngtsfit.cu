@@ -7,6 +7,7 @@
 #include <getopt.h>
 #include <curand.h>
 #include <curand_kernel.h>
+#include <locale.h>
 
 #include "../include/sampler_helper.h"
 #include "../include/ensemble.h"
@@ -535,9 +536,10 @@ int main(int argc, char* argv[])
         diff = clock() - start;
         int msec = diff * 1000 / CLOCKS_PER_SEC;
         int number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
-        printf("Time taken %d seconds %d milliseconds", msec/1000, msec%1000);
-        printf("Number of models per second : %d", number_of_models_per_second);
-        printf("Number of models per minute : %d", 60*number_of_models_per_second);
+        setlocale(LC_NUMERIC, "");
+        printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
+        printf("\nNumber of models per second : %'d", number_of_models_per_second);
+        printf("\nNumber of models per minute : %'d", 60*number_of_models_per_second);
         printf("\n-----------------------------------");fflush(stdout);
     }
 
