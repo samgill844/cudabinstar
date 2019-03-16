@@ -124,7 +124,7 @@ if __name__ =="__main__":
 
 
 	try: 	
-		fig_corner = corner.corner(tmp[:, 3:-1], labels=labels3, quantiles=(0.16, 0.84), levels=(1-np.exp(-0.5),)  )
+		fig_corner = corner.corner(tmp[:, 3:-1], labels=labels3, quantiles=(0.16, 0.84), levels=(1-np.exp(-0.5),), plot_contours=False  )
 		ndim=9
 		axes = np.array(fig_corner.axes).reshape((ndim, ndim))
 
@@ -151,7 +151,7 @@ if __name__ =="__main__":
 	try:
 		tmp11 = np.array([np.clip(rho, 0, 3.).tolist(), t_f.tolist()]).T
 
-		fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$ [Sun]', r'T$_{\rm dur}$ [hr]'], quantiles=(0.16, 0.84), levels=(1-np.exp(-0.5),) )
+		fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$ [Sun]', r'T$_{\rm dur}$ [hr]'], quantiles=(0.16, 0.84), levels=(1-np.exp(-0.5),), plot_contours=False )
 		ndim=2
 		axes = np.array(fig_corner2.axes).reshape((ndim, ndim))
 
