@@ -59,20 +59,21 @@ def fit_lightcurve(i):
     # Make the fitting call 
     os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --gpu'.format(epoch,period, radius_1, k))
 
-
+    os.system('mv output.dat output_{:}.dat'.format(PEAK))
 
 def corner_lightcurve(i):
 
     # Change working directory to it
     os.chdir(home + '/{:}/{:}'.format(prod_id, obj_id) )
 
-    
-    # Now wait for the lightcurve
-    while not os.path.exists('output.dat'):
-        time.sleep(1)
-
     # Get the peak for renaming 
     PEAK =info.data[i]["RANK"]
+
+    # Now wait for the lightcurve
+    while not os.path.exists('output_{:}.dat'.format(PEAK)):
+        time.sleep(1)
+
+
 
     # Now make the plotting call, pipeing it to ngtslog and background since
     # it wont be as long as the fit (hopefully).
@@ -86,7 +87,7 @@ def corner_lightcurve(i):
     os.system('mv ngtsfit.html ngtsfit_{:}.html'.format(PEAK))
     
     # Now remove the output.dat to keep filespace at a minimum
-    os.system('rm output.dat')
+    os.system('rm output_{:}.dat'.format(PEAK))
 
 if __name__ == '__main__':
 
