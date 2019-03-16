@@ -111,6 +111,7 @@ if __name__ == '__main__':
     print(' ... done.')
 
     # Now we need to cycle all the indexes
-    #with Pool(3) as p : p.map(fit_lightcurve, range(len(h[4].data))[:10] )
-    #os.chdir(home)
+    for i in range(len(h[4].data))[:10]:
+        fit_lightcurve(i)
+    os.chdir(home)
     print(' ... done.')
