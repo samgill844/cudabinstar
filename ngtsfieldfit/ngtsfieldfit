@@ -110,7 +110,7 @@ if __name__ == '__main__':
     writing_pool = Pool(8)
     binning_pool = Pool(12)
     fitting_pool = Pool(1)
-    corner_pool = Pool(1)
+    corner_pool = Pool(4)
 
     writing_pool.map_async(write_lightcurves, range(len(obj_ids))[:])
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
