@@ -114,12 +114,8 @@ if __name__ == '__main__':
 
     writing_pool.map_async(write_lightcurves, range(len(obj_ids))[:])
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
-    fitting_pool.map_async(fit_lightcurve, range(len(obj_ids))[:])                             
-    corner_pool.map_async(corner_lightcurve, range(len(obj_ids))[:])
-
-
-
-
+    fitting_pool.map_async(fit_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])                             
+    corner_pool.map_async(corner_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])
 
     writing_pool.close()
     writing_pool.join()
