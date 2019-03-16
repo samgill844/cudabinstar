@@ -83,7 +83,7 @@ def corner_lightcurve(i):
     # Now rename files based on index
     os.system('mv ngtsfit_best_model.png ngtsfit_best_model_{:}.png'.format(PEAK))
     os.system('mv ngtsfit_corner_calculated_parameters.png ngtsfit_corner_calculated_parameters_{:}.png'.format(PEAK))
-    os.system('mv ngtsfit_corner_fitted_parameters.png ngtsfit_corner_fitted_parameters{:}.png'.format(PEAK))
+    os.system('mv ngtsfit_corner_fitted_parameters.png ngtsfit_corner_fitted_parameters_{:}.png'.format(PEAK))
     os.system('mv ngtsfit.log ngtsfit_{:}.log'.format(PEAK))
     os.system('mv ngtsfit.html ngtsfit_{:}.html'.format(PEAK))
     
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     writing_pool = Pool(8)
     binning_pool = Pool(12)
     fitting_pool = Pool(1)
-    corner_pool = Pool(4)
+    corner_pool = Pool(1)
 
     writing_pool.map_async(write_lightcurves, range(len(obj_ids))[:])
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
