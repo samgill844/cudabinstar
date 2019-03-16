@@ -7,7 +7,7 @@ from tqdm import tqdm
 from multiprocessing import Pool
 import multiprocessing
 
-def make_lightcurves(i):
+def write_lightcurves(i):
     # Firs tchange the working directory
     os.chdir(home + '/{:}/{:}'.format(prod_id, obj_ids[i]) )
 
@@ -19,9 +19,48 @@ def make_lightcurves(i):
 
     # Now save lightcurve
     np.savetxt('ngts.lc'.format(prod_id, obj_ids[i]), np.array([time.tolist(), mag.tolist(), mag_err.tolist(), mag.tolist(), mag_err.tolist()]).T )
+    
+    # Now add to writing lightcurve pool
+    binning_pool.apply_async(fit_lightcurve, i)
+    
+def bin_lightcurves(i):
+    os.chdir(home + '/{:}/{:}'.format(prod_id, obj_ids[i]) )   
     os.system('ngtsbin ngts.lc 2')
     os.system('ngtsbin ngts.lc 30')
 
+
+def fit_lightcurve(i):
+    # Get the object ID
+    obj_id = info.data[i]["OBJ_ID"]
+
+    # Change working directory to it
+    os.chdir(home + '/{:}/{:}'.format(prod_id, obj_id) )
+
+    # Get transit parameters
+    period = info.data[i]["PERIOD"] / 86400.           # Period in days                '
+    epoch = info.data[i]["EPOCH"] / 86400. + 6658.5    # epoch in HJD-2450000 / days
+    width = info.data[i]["WIDTH"] /  86400.            # Width in days
+    depth = info.data[i]["DEPTH"]* -1.                 # depth in mmag
+    radius_1 = np.pi*width/period
+    k = np.sqrt(depth)
+    PEAK =info.data[i]["RANK"]
+
+
+    # Make the fitting call 
+    os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --gpu'.format(epoch,period, radius_1, k))
+
+    # Now make the plotting call, pipeing it to ngtslog and background since
+    # it wont be as long as the fit (hopefully).
+    os.system('ngtscorner output.dat 2_min_lc.dat 30_min_lc.dat > ngtsfit.log')
+
+    # Now rename files based on index
+    os.system('mv ngtsfit_best_model.png ngtsfit_best_model_{:}.png'.format(PEAK))
+    os.system('mv ngtsfit_corner_calculated_parameters.png ngtsfit_corner_calculated_parameters_{:}.png'.format(PEAK))
+    os.system('mv ngtsfit_corner_fitted_parameters.png ngtsfit_corner_fitted_parameters{:}.png'.format(PEAK))
+    os.system('mv ngtsfit.log ngtsfit_{:}.log'.format(PEAK))
+    
+    # Now remove the output.dat to keep filespace at a minimum
+    os.system('rm output.dat')
 
 if __name__ == '__main__':
 
@@ -33,74 +72,37 @@ if __name__ == '__main__':
     print('Processing {:} [product ID {:}]'.format(h[0].header['FIELD'] +'_' +  h[0].header['TAG'], prod_id))
 
     # Now create the product ID folder
+    # Run this on single thread since it's quick
     os.system('rm -r -f {:}'.format(prod_id))
     os.system('mkdir -p {:}'.format(prod_id))
 
     # Now we need to get a list of independent object IDs
     obj_ids = np.unique(h[4].data["OBJ_ID"])  
     print('\tCreating file structure... ', end=''); sys.stdout.flush()
-    for i in range(len(obj_ids))[:] : os.system('mkdir {:}/{:}'.format(prod_id, obj_ids[i]))
+    for i in range(len(obj_ids))[:10] : os.system('mkdir {:}/{:}'.format(prod_id, obj_ids[i]))
     print('done.')
 
-
+    # Create  this to allow multiprocessing
+    home = os.getcwd()
+    info = h[4]
+    lightcurves = h[5]
 
 
     print('\tCreating lightcurve files... ', end=''); sys.stdout.flush()
-    home = os.getcwd()
-    lightcurves = h[5]
-    with Pool(6) as p : p.map(make_lightcurves, range(len(obj_ids))[:])
-    '''
-    for i in range(len(obj_ids))[:2]:
-        # Firs tchange the working directory
-        os.chdir(home + '/{:}/{:}'.format(prod_id, obj_ids[i]) )
+    writing_pool = Pool(4)
+    binning_pool = Pool(8)
+ 
+    writing_pool.map(write_lightcurves, range(len(obj_ids))[:10])
 
-        # Get the lightcurve data
-        time, mag, mag_err = h[5].data[i]
+    writing_pool.join()
+    writing_pool.close()
+    binning_pool.join()
+    binning_pool.close()
 
-        # Convert time to HJD from 
-        time = time/ 86400. + 6658.5
-
-        # Now save lightcurve
-        np.savetxt('ngts.lc'.format(prod_id, obj_ids[i]), np.array([time.tolist(), mag.tolist(), mag_err.tolist(), mag.tolist(), mag_err.tolist()]).T )
-        os.system('ngtsbin ngts.lc 2')
-        os.system('ngtsbin ngts.lc 30')
-        print('\r\tCreating lightcurve files... [{:} out of {:}] '.format(i, len(obj_ids)), end=''); sys.stdout.flush()
-    '''
     os.chdir(home)
     print(' ... done.')
-    
+
     # Now we need to cycle all the indexes
-    for i in range(len(h[4].data))[:]:
-        # Get the object ID
-        obj_id = h[4].data[i]["OBJ_ID"]
-
-        # Change working directory to it
-        os.chdir(home + '/{:}/{:}'.format(prod_id, obj_id) )
-
-        # Get transit parameters
-        period = h[4].data[i]["PERIOD"] / 86400.           # Period in days                '
-        epoch = h[4].data[i]["EPOCH"] / 86400. + 6658.5    # epoch in HJD-2450000 / days
-        width = h[4].data[i]["WIDTH"] /  86400.            # Width in days
-        depth = h[4].data[i]["DEPTH"]* -1.                 # depth in mmag
-        radius_1 = np.pi*width/period
-        k = np.sqrt(depth)
-        PEAK = h[4].data[i]["RANK"]
-
-
-        # Make the fitting call 
-        os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --gpu'.format(epoch,period, radius_1, k))
-
-        # Now make the plotting call, pipeing it to ngtslog and background since
-        # it wont be as long as the fit (hopefully).
-        os.system('ngtscorner output.dat 2_min_lc.dat 30_min_lc.dat > ngtsfit.log')
-
-        # Now rename files based on index
-        os.system('mv ngtsfit_best_model.png ngtsfit_best_model_{:}.png'.format(PEAK))
-        os.system('mv ngtsfit_corner_calculated_parameters.png ngtsfit_corner_calculated_parameters_{:}.png'.format(PEAK))
-        os.system('mv ngtsfit_corner_fitted_parameters.png ngtsfit_corner_fitted_parameters{:}.png'.format(PEAK))
-        os.system('mv ngtsfit.log ngtsfit_{:}.log'.format(PEAK))
-        
-        # Now remove the output.dat to keep filespace at a minimum
-        os.system('rm output.dat')
-    
-    print('done.')
+    #with Pool(3) as p : p.map(fit_lightcurve, range(len(h[4].data))[:10] )
+    #os.chdir(home)
+    print(' ... done.')
