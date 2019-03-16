@@ -64,6 +64,7 @@ def fit_lightcurve(i):
 def corner_lightcurve(i):
 
     # Change working directory to it
+    obj_id = info.data[i]["OBJ_ID"]
     os.chdir(home + '/{:}/{:}'.format(prod_id, obj_id) )
 
     # Get the peak for renaming 
