@@ -66,6 +66,9 @@ def corner_lightcurve(i):
     while not os.path.exists('output.dat'):
         time.sleep(1)
 
+    # Get the peak for renaming 
+    PEAK =info.data[i]["RANK"]
+
     # Now make the plotting call, pipeing it to ngtslog and background since
     # it wont be as long as the fit (hopefully).
     os.system('ngtscorner output.dat 2_min_lc.dat 30_min_lc.dat > ngtsfit.log')
