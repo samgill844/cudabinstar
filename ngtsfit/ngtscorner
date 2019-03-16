@@ -22,7 +22,7 @@ rho_sun = (constants.M_sun/(4*np.pi*constants.R_sun**3/3)).value
 radius_1 = (constants.R_sun / constants.au ).value
 R_jup_R_sun = constants.R_jup.value / constants.R_sun.value
 
-exodata = Table.read('/home/sam/bin/exoplanet.eu_catalog.csv', format='csv')
+exodata = Table.read('/home/u1870241/bin/exoplanet.eu_catalog.csv', format='csv')
 
 def rho_func(period, radius_1) : 
 	return (radius_1**-3)*3*np.pi / (G*(period*86400)**2) / rho_sun
