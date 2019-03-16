@@ -57,7 +57,7 @@ def fit_lightcurve(i):
         time.sleep(1)
 
     # Make the fitting call 
-    os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --gpu'.format(epoch,period, radius_1, k))
+    os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --nsteps 2000 --burn_in 1950 --gpu'.format(epoch,period, radius_1, k))
 
     os.system('mv output.dat output_{:}.dat'.format(PEAK))
 
