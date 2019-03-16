@@ -101,10 +101,11 @@ if __name__ == '__main__':
     writing_pool.apply_async(write_lightcurves, range(len(obj_ids))[:10])
     binning_pool.apply_async(bin_lightcurves, range(len(obj_ids))[:10])
 
-    writing_pool.join()
     writing_pool.close()
-    binning_pool.join()
+    writing_pool.join()
     binning_pool.close()
+    binning_pool.join()
+
 
     os.chdir(home)
     print(' ... done.')
