@@ -52,6 +52,10 @@ def fit_lightcurve(i):
     PEAK =info.data[i]["RANK"]
 
 
+    # Now wait for the lightcurve
+    while not os.path.exists('30_min_lc.dat'):
+        time.sleep(1)
+
     # Make the fitting call 
     os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --gpu'.format(epoch,period, radius_1, k))
 
@@ -64,6 +68,7 @@ def fit_lightcurve(i):
     os.system('mv ngtsfit_corner_calculated_parameters.png ngtsfit_corner_calculated_parameters_{:}.png'.format(PEAK))
     os.system('mv ngtsfit_corner_fitted_parameters.png ngtsfit_corner_fitted_parameters{:}.png'.format(PEAK))
     os.system('mv ngtsfit.log ngtsfit_{:}.log'.format(PEAK))
+    os.system('mv ngtsfit.html ngtsfit_{:}.html'.format(PEAK))
     
     # Now remove the output.dat to keep filespace at a minimum
     os.system('rm output.dat')
@@ -95,17 +100,25 @@ if __name__ == '__main__':
 
 
     print('\tCreating lightcurve files... ', end=''); sys.stdout.flush()
-    writing_pool = Pool(4)
-    binning_pool = Pool(8)
+    writing_pool = Pool(8)
+    binning_pool = Pool(12)
+    fitting_pool = Pool(1)
  
     writing_pool.map_async(write_lightcurves, range(len(obj_ids))[:])
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
+    fitting_pool.map_async(fit_lightcurve, range(len(obj_ids))[:])                             
+
+
+
+
+
 
     writing_pool.close()
     writing_pool.join()
     binning_pool.close()
     binning_pool.join()
-
+    fitting_pool.close()
+    fitting_pool.join()
 
     os.chdir(home)
     print(' ... done.')

@@ -122,7 +122,6 @@ if __name__ =="__main__":
 
 	opis_table.write('ngtsfit.html', format='html')
 
-	'''
 
 	try: 	
 		fig_corner = corner.corner(tmp[:, 3:-1], labels=labels3, quantiles=(0.16, 0.84), levels=(1-np.exp(-0.5),)  )
@@ -275,5 +274,5 @@ if __name__ =="__main__":
 		ax5.set_ylabel(r'Host star Radius (R$_{\rm Sun}$)')
 		f5.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
 		f5.savefig('ngtsfit_host_seperation.png')
-	'''
+
 	plt.close()
