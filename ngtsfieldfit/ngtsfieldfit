@@ -59,6 +59,13 @@ def fit_lightcurve(i):
     # Make the fitting call 
     os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --gpu'.format(epoch,period, radius_1, k))
 
+
+
+def corner_lightcurve(i):
+    # Now wait for the lightcurve
+    while not os.path.exists('output.dat'):
+        time.sleep(1)
+
     # Now make the plotting call, pipeing it to ngtslog and background since
     # it wont be as long as the fit (hopefully).
     os.system('ngtscorner output.dat 2_min_lc.dat 30_min_lc.dat > ngtsfit.log')
@@ -103,11 +110,12 @@ if __name__ == '__main__':
     writing_pool = Pool(8)
     binning_pool = Pool(12)
     fitting_pool = Pool(1)
- 
+    corner_pool = Pool(1)
+
     writing_pool.map_async(write_lightcurves, range(len(obj_ids))[:])
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
     fitting_pool.map_async(fit_lightcurve, range(len(obj_ids))[:])                             
-
+    corner_pool.map_async(corner_lightcurve, range(len(obj_ids))[:])
 
 
 
@@ -119,6 +127,8 @@ if __name__ == '__main__':
     binning_pool.join()
     fitting_pool.close()
     fitting_pool.join()
+    corner_pool.close()
+    corner_pool.join()
 
     os.chdir(home)
     print(' ... done.')
