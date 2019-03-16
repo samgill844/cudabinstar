@@ -9,7 +9,7 @@ from gpuastro.utilities import htoc1_, htoc2__
 from uncertainties import ufloat
 import datetime
 from astropy import constants
-from astropy.table import Table 
+from astropy.table import Table , Column
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.gaia import Gaia
@@ -22,7 +22,8 @@ rho_sun = (constants.M_sun/(4*np.pi*constants.R_sun**3/3)).value
 radius_1 = (constants.R_sun / constants.au ).value
 R_jup_R_sun = constants.R_jup.value / constants.R_sun.value
 
-exodata = Table.read('/home/u1870241/bin/exoplanet.eu_catalog.csv', format='csv')
+#exodata = Table.read('/home/u1870241/bin/exoplanet.eu_catalog.csv', format='csv')
+exodata = Table.read('/home/sam/bin/exoplanet.eu_catalog.csv', format='csv')
 
 def rho_func(period, radius_1) : 
 	return (radius_1**-3)*3*np.pi / (G*(period*86400)**2) / rho_sun
@@ -81,6 +82,47 @@ if __name__ =="__main__":
 	print('{:>15} = {:>15.2f} + {:>15.2f} - {:>15.2f} [{:>15.2f}]'.format('Duration', np.median(t_f), np.percentile(t_f, 84)-np.median(t_f), np.median(t_f) - np.percentile(t_f, 16), t_f[best_idx_rho]  ))
 	print('---------------------------------------------------------------------------------------')
 	
+
+	# Now generate HTML table compliant for OPIS
+	opis_table = Table()
+	labels_l = ['t_zero [HJD]', 'Period [d]', 'R1/a', 'R2/R1', 'h1', 'h2', 'b', 'zero-point', 'Jitter [mag.]', 'Density [Sun]', 'Duration [hr]']
+	
+	# Now create the cols
+	median_step_col = np.copy(median_step).tolist()
+	high_err_col = np.copy(high_err).tolist()
+	low_err_col = np.copy(low_err).tolist()
+	best_step_col = np.copy(best_step).tolist()
+
+	# now append rho and tdur
+	median_step_col.append(np.median(t_f))
+	median_step_col.append(np.median(rho[rho_mask]) )
+
+	high_err_col.append(np.percentile(t_f, 84)-np.median(t_f) )
+	high_err_col.append(np.percentile(rho[rho_mask], 84)-np.median(rho[rho_mask]) )
+
+	low_err_col.append(np.median(t_f) - np.percentile(t_f, 16))
+	low_err_col.append(np.median(rho[rho_mask]) - np.percentile(rho[rho_mask], 16))
+
+	best_step_col.append(t_f[best_idx_rho])
+	best_step_col.append(rho[rho_mask][best_idx_rho] )
+
+
+
+	labels_col = Column(labels_l, name='Parameter')
+	median_col = Column(median_step_col, name='Median')
+	low_col = Column(low_err_col, name='low_err')
+	high_col = Column(high_err_col, name='high_err')
+	best_col = Column(best_step_col, name='Best')
+
+	opis_table.add_column(labels_col)
+	opis_table.add_column(median_col)
+	opis_table.add_column(low_col)
+	opis_table.add_column(high_col)
+	opis_table.add_column(best_col)
+
+	opis_table.write('ngtsfit.html', format='html')
+
+	'''
 
 	try: 	
 		fig_corner = corner.corner(tmp[:, 3:-1], labels=labels3, quantiles=(0.16, 0.84), levels=(1-np.exp(-0.5),)  )
@@ -233,5 +275,5 @@ if __name__ =="__main__":
 		ax5.set_ylabel(r'Host star Radius (R$_{\rm Sun}$)')
 		f5.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
 		f5.savefig('ngtsfit_host_seperation.png')
-	
+	'''
 	plt.close()
