@@ -104,7 +104,7 @@ def corner_lightcurve(i):
     os.system('rm -r tmp_{:}'.format(PEAK))
 
     # Now remove the chain_{:}.dat to keep filespace at a minimum
-    os.system('rm chain_{:}.dat'.format(PEAK))
+    #os.system('rm chain_{:}.dat'.format(PEAK))
 
 if __name__ == '__main__':
 
