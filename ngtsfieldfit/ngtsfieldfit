@@ -57,7 +57,7 @@ def fit_lightcurve(i):
         time.sleep(1)
 
     # Make the fitting call 
-    os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --nsteps 2000 --burn_in 1950 --gpu'.format(epoch,period, radius_1, k))
+    os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --nsteps 10000 --burn_in 5000 --walkers 100'.format(epoch,period, radius_1, k))
 
     os.system('mv output.dat output_{:}.dat'.format(PEAK))
 
@@ -117,10 +117,10 @@ if __name__ == '__main__':
 
 
     print('\tCreating lightcurve files... ', end=''); sys.stdout.flush()
-    writing_pool = Pool(8)
-    binning_pool = Pool(12)
-    fitting_pool = Pool(1)
-    corner_pool = Pool(1)
+    writing_pool = Pool(5)
+    binning_pool = Pool(5)
+    fitting_pool = Pool(5)
+    corner_pool = Pool(5)
 
     writing_pool.map_async(write_lightcurves, range(len(obj_ids))[:])
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
