@@ -89,57 +89,6 @@ void readlread_3_col(char * filename, int lines_to_read, double * x, double * y,
 
 
 
-void historgram_plot_2_axis()
-{
-    FILE * gnuplotPipe = popen ("gnuplot -persistent", "w");
-    const char * commandsForGnuplot[] = {"set term qt size 1600, 700",
-                                   "set multiplot layout 2,4 rowsfirst" ,
-                                   "set key off", 
-                                   "set datafile separator ','",
-                                   "bin_width = 0.0005",
-                                   "bin_number(x) = floor(x/bin_width)",
-                                   "rounded(x) = bin_width * ( bin_number(x) + 0.5 )",
-
-                                   "set title 'T0'",
-                                   "plot 'output_gpu.dat' using (rounded($4)):(1) smooth frequency with boxes", 
-
-                                   "bin_width = 0.0003",
-                                   "bin_number(x) = floor(x/bin_width)",
-                                   "rounded(x) = bin_width * ( bin_number(x) + 0.5 )",
-                                   "set title 'Period'",
-                                   "plot 'output_gpu.dat' using (rounded($5)):(1) smooth frequency with boxes",
-                                
-                                   "bin_width = 0.01",
-                                   "bin_number(x) = floor(x/bin_width)",
-                                   "rounded(x) = bin_width * ( bin_number(x) + 0.5 )",
-                                   "set title 'radius_1'",
-                                   "plot 'output_gpu.dat' using (rounded($6)):(1) smooth frequency with boxes",
-
-                                   "set title 'k'",
-                                   "plot 'output_gpu.dat' using (rounded($7)):(1) smooth frequency with boxes",
-                                
-                                   "set title 'h1'",
-                                   "plot 'output_gpu.dat' using (rounded($8)):(1) smooth frequency with boxes",
-                                
-                                   "bin_width = 0.1",
-                                   "bin_number(x) = floor(x/bin_width)",
-                                   "rounded(x) = bin_width * ( bin_number(x) + 0.5 )",
-                                   "set title 'h2'",
-                                   "plot 'output_gpu.dat' using (rounded($9)):(1) smooth frequency with boxes",
-                                
-                                   "bin_width = 0.01",
-                                   "bin_number(x) = floor(x/bin_width)",
-                                   "rounded(x) = bin_width * ( bin_number(x) + 0.5 )",
-                                   "set title 'zp'",
-                                   "plot 'output_gpu.dat' using (rounded($10)):(1) smooth frequency with boxes",
-
-};
-    int i;
-    for (i=0; i < 33; i++)
-        fprintf(gnuplotPipe, "%s \n", commandsForGnuplot[i]); //Send commands to gnuplot one by one.
-}
-
-
 
 int main(int argc, char* argv[])
 {
@@ -421,7 +370,17 @@ int main(int argc, char* argv[])
     tmpp[2] = period;
     tmpp[3] = ldc_1;
     tmpp[4] = ldc_2;
-    switch(CPU_OR_GPU){ case 1 :
+    switch(CPU_OR_GPU){ 
+                        
+        case 0:
+            args = (double **) malloc(4*sizeof(double *));
+            args[0] = time;
+            args[1] = LC;
+            args[2] = LC_ERR;
+            args[3] = tmpp;
+            break;
+        
+        case 1 :
                     // Now set up the args
                     cudaMalloc(&d_time, N_LC*sizeof(double)); 
                     cudaMalloc(&d_LC, N_LC*sizeof(double)); 
@@ -441,14 +400,7 @@ int main(int argc, char* argv[])
                     cudaMalloc(&d_args, 4*sizeof(double**)); 
                     cudaMemcpy(d_args, args, 4*sizeof(double**), cudaMemcpyHostToDevice);
                     break;
-                
-                 case 0:
-                    args = (double **) malloc(4*sizeof(double *));
-                    args[0] = time;
-                    args[1] = LC;
-                    args[2] = LC_ERR;
-                    args[3] = tmpp;
-                    break;
+
                 }
     printf("done."); fflush(stdout);
 
@@ -458,10 +410,25 @@ int main(int argc, char* argv[])
     Part 4 - Create the starting positions
     ---------------------------*/
     printf("\nCreating the sarting positions."); fflush(stdout);
-    double scatter = 0.0001;
+    double scatter = 0.0001 ;
     double * d_positions, * d_loglikliehoods;
+    double * positions, *loglikliehoods ;
     switch(CPU_OR_GPU)
     {
+        case 0:
+            int j,k;
+            loglikliehoods = (double *) malloc(nwalkers*nsteps*sizeof(double));
+            positions = (double*) malloc(nwalkers*nsteps*ndim*sizeof(double));
+            for (j=0; j < nwalkers; j++)
+            {
+                for (k=0;  k < ndim; k++)
+                {
+                    positions[j*ndim + k] = theta[k] + scatter*sampleNormal_d();
+                }
+            }
+            printf(" done."); fflush(stdout);
+            break    ;  
+
         case 1:
             // First malloc the device arrays
             gpuErrchk(cudaMalloc(&d_positions, nwalkers*nsteps*ndim*sizeof(double))); 
@@ -471,13 +438,10 @@ int main(int argc, char* argv[])
                 nsteps, ndim, nwalkers,
                 blocks, threads_per_block,
                 scatter, 
-                d_positions, d_loglikliehoods);
+                d_positions,
+                1);
             printf(" done."); fflush(stdout);
-            break;
-
-        case 0:
-            printf(" done."); fflush(stdout);
-            break    ;     
+            break;   
     }
 
     /*---------------------------
@@ -498,6 +462,7 @@ int main(int argc, char* argv[])
     ---------------------------*/
     int * d_block_progress;
     int i;
+    
     if (CPU_OR_GPU==1)
     {
         int d_block_progress__[1] = {0};
@@ -510,51 +475,73 @@ int main(int argc, char* argv[])
     Part 5 - Launch the sampler
     ---------------------------*/
     clock_t start, diff;
-    if (CPU_OR_GPU==1)
+    switch (CPU_OR_GPU)
     {
-        cudaStream_t streams[2];
-        cudaStreamCreate(&streams[0]);
-        cudaStreamCreate(&streams[1]);
+        case 0 :
+            // Now run
+            printf("\n-----------------------------------");
+            printf("\nCommencing Bayesian sampleing [CPU]\n"); fflush(stdout);
+            CPU_parallel_stretch_move_sampler(nsteps, ndim, nwalkers, args, 
+                loglikliehoods, positions,
+                2.0);
+            break;
+
+        case 1 :
+            cudaStream_t streams[2];
+            cudaStreamCreate(&streams[0]);
+            cudaStreamCreate(&streams[1]);
 
 
-        // Now run
-        printf("\n-----------------------------------");
-        printf("\nCommencing Bayesian sampleing [GPU]\n"); fflush(stdout);
-        printf("Progress of each block [%%] given below..."); 
+            // Now run
+            printf("\n-----------------------------------");
+            printf("\nCommencing Bayesian sampleing [GPU]\n"); fflush(stdout);
+            printf("Progress of each block [%%] given below..."); 
 
-        // Start the progress bar
-        sampler_progress<<<1, 1, 0,streams[0] >>>(blocks, d_block_progress);
+            // Start the progress bar
+            sampler_progress<<<1, 1, 0,streams[0] >>>(blocks, d_block_progress);
 
-        start = clock();
-        GPU_parallel_stretch_move_sampler<<<blocks, threads_per_block, 0 , streams[1]>>>(nsteps, ndim, nwalkers, blocks, threads_per_block, d_args, 
-            d_loglikliehoods, d_positions,
-            2.0,  devState, d_block_progress );
-        cudaGetLastError();
-        cudaDeviceSynchronize(); // make sure the kernel is done before carrying on.
+            start = clock();
+            GPU_parallel_stretch_move_sampler<<<blocks, threads_per_block, 0 , streams[1]>>>(nsteps, ndim, nwalkers, blocks, threads_per_block, d_args, 
+                d_loglikliehoods, d_positions,
+                2.0,  devState, d_block_progress );
+            cudaGetLastError();
+            cudaDeviceSynchronize(); // make sure the kernel is done before carrying on.
 
-        printf("\n-----------------------------------");fflush(stdout);
-        diff = clock() - start;
-        int msec = diff * 1000 / CLOCKS_PER_SEC;
-        int number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
-        setlocale(LC_NUMERIC, "");
-        printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
-        printf("\nNumber of models per second : %'d", number_of_models_per_second);
-        printf("\nNumber of models per minute : %'d", 60*number_of_models_per_second);
-        printf("\n-----------------------------------");fflush(stdout);
+            printf("\n-----------------------------------");fflush(stdout);
+            diff = clock() - start;
+            int msec = diff * 1000 / CLOCKS_PER_SEC;
+            int number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
+            setlocale(LC_NUMERIC, "");
+            printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
+            printf("\nNumber of models per second : %'d", number_of_models_per_second);
+            printf("\nNumber of models per minute : %'d", 60*number_of_models_per_second);
+            printf("\n-----------------------------------");fflush(stdout);
+            break;
     }
-
+    
 
     /*---------------------------
     Part 6 - Write out results
     ---------------------------*/
     // Write out
     printf("\nWriting results... "); fflush(stdout);
-    write_out_results(burn_in, nsteps, ndim, nwalkers,
-        blocks, threads_per_block,
-        d_positions, d_loglikliehoods, output_filename);
+    switch (CPU_OR_GPU)
+    {
+        case 0 :
+            write_out_results(burn_in, nsteps, ndim, nwalkers,
+                blocks, threads_per_block,
+                positions, loglikliehoods, output_filename, CPU_OR_GPU);
+            break;
+        case 1 :
+            write_out_results(burn_in, nsteps, ndim, nwalkers,
+                blocks, threads_per_block,
+                d_positions, d_loglikliehoods, output_filename, CPU_OR_GPU);
+            break;
+    }
+
     printf(" done.\n\n"); fflush(stdout);
-
-
+    
+    
     
     // free up host memory
     free(theta);

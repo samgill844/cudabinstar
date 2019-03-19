@@ -4,7 +4,7 @@ COMPILER_FLAGS = -O3 -Xcompiler -fpic -rdc=true --default-stream per-thread -Xpt
 all : ensemble.o sampler_helper.o
 
 ensemble.o : ensemble.cu sampler_helper.o
-	${cc} ${COMPILER_FLAGS} ensemble.cu sampler_helper.o   -c 
+	${cc} ${COMPILER_FLAGS}  -Xcompiler -fopenmp ensemble.cu sampler_helper.o   -c 
 
 sampler_helper.o : sampler_helper.cu 
 	${cc} ${COMPILER_FLAGS} sampler_helper.cu  -c 

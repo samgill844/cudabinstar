@@ -8,3 +8,7 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
                                             double * loglikliehoods, double * positions,
                                             float a, curandState * devState,
                                             int * block_progress);
+
+void CPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwalkers, double ** args, 
+       double * loglikliehoods, double * positions,
+       float a);

@@ -22,12 +22,13 @@ void create_starting_positions(const double * theta,
                              const int nsteps, const int ndim, const int nwalkers,
                              const int blocks, const int threads_per_block,
                              const double scatter, 
-                             double * d_positions, double * d_loglikliehoods);
+                             double * d_positions,
+                             int cpuORgpu);
 
 void write_out_results(const int burn_in, const int nsteps, const int ndim, const int nwalkers,
                     const int blocks, const int threads_per_block,
-                    double * d_positions, double * d_loglikliehoods, 
-                    const char * output_filename);
+                    double * d_positions, double * d_loglikliehoods, const char * output_filename,
+                    int cpuORgpu);
 
 
 __global__ void initCurand(curandState *state, unsigned long seed);

@@ -57,28 +57,48 @@ void create_starting_positions(const double * theta,
                              const int nsteps, const int ndim, const int nwalkers,
                              const int blocks, const int threads_per_block,
                              const double scatter, 
-                             double * d_positions, double * d_loglikliehoods)
+                             double * d_positions,
+                             int cpuORgpu)
 {
 
     // Then allocate a tempory host array to hold the starting
     // point of each block
     double * p0;
-    p0 = (double *) malloc(threads_per_block*ndim*sizeof(double));
-
+    if (cpuORgpu) p0 = (double *) malloc(threads_per_block*ndim*sizeof(double));
+    
     int i,k;
 
     // Now create the starting position
-    for (i=0; i < threads_per_block; i++)
+    switch (cpuORgpu)
     {
-        for (k=0; k < ndim; k++)
-            p0[i*ndim + k] = theta[k] + scatter*sampleNormal_d();
+        case 0 :
+            //for (i=0; i < nwalkers; i++)
+            //{
+            //    for (k=0; k < ndim; k++)
+            //        d_positions[i*ndim + k] = theta[k] + scatter*sampleNormal_d();
+            //}
+            break;
+
+        case 1 :
+            for (i=0; i < threads_per_block; i++)
+            {
+                for (k=0; k < ndim; k++)
+                    p0[i*ndim + k] = theta[k] + scatter*sampleNormal_d();
+            }
+            break;
     }
 
-    // Now copy the starting points to each block
-    for (i=0; i < blocks; i++)
+
+    if (cpuORgpu)
     {
-        gpuErrchk(cudaMemcpy(&d_positions[i*threads_per_block*ndim], p0, threads_per_block*ndim*sizeof(double), cudaMemcpyHostToDevice));
+        // Now copy the starting points to each block
+        for (i=0; i < blocks; i++)
+        {
+            gpuErrchk(cudaMemcpy(&d_positions[i*threads_per_block*ndim], p0, threads_per_block*ndim*sizeof(double), cudaMemcpyHostToDevice));
+        }
     }
+
+
     // Free allocated array
     free(p0);
 }
@@ -86,53 +106,78 @@ void create_starting_positions(const double * theta,
 
 void write_out_results(const int burn_in, const int nsteps, const int ndim, const int nwalkers,
                     const int blocks, const int threads_per_block,
-                    double * d_positions, double * d_loglikliehoods, const char * output_filename)
+                    double * d_positions, double * d_loglikliehoods, const char * output_filename,
+                    int cpuORgpu)
 {
-    
-
-    // Then allocate a tempory host array to hold the starting
-    // point of each block
-    double * p0, *loglikliehoods;
-    p0 = (double *) malloc(threads_per_block*ndim*sizeof(double));
-    loglikliehoods = (double *) malloc(threads_per_block*sizeof(double));
-
-
     // Then open output file
     FILE * fp;
-    fp = fopen (output_filename,"w");
+    fp = fopen (output_filename,"w"); 
+    int i,j,k,l,index2d,index3d;
 
-    int i,j,k,l;
-    printf("\n");
-    printf("Progress : %d %d %.2f", 0, 0, 0.); fflush(stdout);
-    // For each step, we are going to write out block-by-block
-    for (i=burn_in; i < nsteps; i++)
+    switch(cpuORgpu)
     {
-        // iterate over the steps
-        for (j=0; j < blocks; j++)
-        {
-            // iterate over the blocks
-            cudaMemcpy(p0, &d_positions[i*nwalkers*ndim + j*threads_per_block*ndim], threads_per_block*ndim*sizeof(double), cudaMemcpyDeviceToHost);
-            cudaMemcpy(loglikliehoods, &d_loglikliehoods[i*nwalkers + j*threads_per_block], threads_per_block*sizeof(double), cudaMemcpyDeviceToHost);
-
-            // Now iterate over each walker
-            for (k=0;k<threads_per_block;k++)
+        case 0 :
+            printf("\n");
+            printf("Progress : %d %d %.2f", 0, 0, 0.); fflush(stdout);
+            // For each step, we are going to write out block-by-block
+            for (i=burn_in; i < nsteps; i++)
             {
-                fprintf(fp, "\n%d,%d,%d", i+1, j+1, j*threads_per_block + k +1);
-                for (l=0;l<ndim;l++)
-                    fprintf(fp, ",%f", p0[k*ndim + l]);
-                fprintf(fp, ",%f", loglikliehoods[k]);
-
-                printf("\rProgress : %2d %2d %2.2f", i+1, j+1, (float) k / (float) threads_per_block); fflush(stdout);
+                // iterate over the steps
+                for (j=0; j < nwalkers; j++)
+                {
+                    fprintf(fp, "\n%d,%d,%d", i+1, 1, j+1);
+                    for (l=0;l<ndim;l++)
+                    {
+                        index3d = get_3D_index(i, j , l, nwalkers, ndim);
+                        fprintf(fp, ",%f", d_positions[index3d]);
+                    }
+                    index2d = get_2D_index(i, j, nwalkers );
+                    fprintf(fp, ",%f", d_loglikliehoods[index2d]);
+                }
+                printf("\rProgress : %2d", i); fflush(stdout);
             }
-        }
+            break;
+
+        case 1 : 
+            // Then allocate a tempory host array to hold the starting
+            // point of each block
+            double * p0, *loglikliehoods;
+            p0 = (double *) malloc(threads_per_block*ndim*sizeof(double));
+            loglikliehoods = (double *) malloc(threads_per_block*sizeof(double));
+
+            printf("\n");
+            printf("Progress : %d %d %.2f", 0, 0, 0.); fflush(stdout);
+            // For each step, we are going to write out block-by-block
+            for (i=burn_in; i < nsteps; i++)
+            {
+                // iterate over the steps
+                for (j=0; j < blocks; j++)
+                {
+                    // iterate over the blocks
+                    cudaMemcpy(p0, &d_positions[i*nwalkers*ndim + j*threads_per_block*ndim], threads_per_block*ndim*sizeof(double), cudaMemcpyDeviceToHost);
+                    cudaMemcpy(loglikliehoods, &d_loglikliehoods[i*nwalkers + j*threads_per_block], threads_per_block*sizeof(double), cudaMemcpyDeviceToHost);
+
+                    // Now iterate over each walker
+                    for (k=0;k<threads_per_block;k++)
+                    {
+                        fprintf(fp, "\n%d,%d,%d", i+1, j+1, j*threads_per_block + k +1);
+                        for (l=0;l<ndim;l++)
+                            fprintf(fp, ",%f", p0[k*ndim + l]);
+                        fprintf(fp, ",%f", loglikliehoods[k]);
+
+                        printf("\rProgress : %2d %2d %2.2f", i+1, j+1, (float) k / (float) threads_per_block); fflush(stdout);
+                    }
+                }
+            }
+
+            // The close the file
+            fclose(fp);
+
+            // Then free memory
+            free(p0);
+            free(loglikliehoods);
+            break;
     }
-
-    // The close the file
-    fclose(fp);
-
-    // Then free memory
-    free(p0);
-    free(loglikliehoods);
 }
 
 
