@@ -90,7 +90,7 @@ def corner_lightcurve(i):
 
     # Now make the plotting call, pipeing it to ngtslog and background since
     # it wont be as long as the fit (hopefully).
-    os.system('ngtscorner ../chain_{:}.dat 2_min_lc.dat 30_min_lc.dat > ngtsfit.log'.format(PEAK))
+    os.system('ngtscorner ../chain_{:}.dat ../2_min_lc.dat ../30_min_lc.dat > ngtsfit.log'.format(PEAK))
 
     # Now rename files based on index
     os.system('mv ngtsfit_best_model.png ../ngtsfit_best_model_{:}.png'.format(PEAK))
