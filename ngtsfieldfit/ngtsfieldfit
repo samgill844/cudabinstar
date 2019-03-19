@@ -13,6 +13,9 @@ def write_lightcurves(i):
     # Firs tchange the working directory
     os.chdir(home + '/{:}/{:}'.format(prod_id, obj_ids[i]) )
 
+    # Now check if it's there and skip
+    if os.path.exists('ngts.lc') : return
+
     # Get the lightcurve data
     time, mag, mag_err = lightcurves.data[i]
 
@@ -26,7 +29,10 @@ def write_lightcurves(i):
     
 def bin_lightcurves(i):
     # First, cd to the directory
-    os.chdir(home + '/{:}/{:}'.format(prod_id, obj_ids[i]) )  
+    os.chdir(home + '/{:}/{:}'.format(prod_id, obj_ids[i]) )
+
+    # Now check if it's there and skip
+    if (os.path.exists('2_min_lc.dat') and os.path.exists('30_min_lc.dat')) : return  
 
     # The wait for the file to be made by the "write_lightcurves" processes...
     while not os.path.exists('ngts.lc'):
@@ -51,6 +57,8 @@ def fit_lightcurve(i):
     k = np.sqrt(depth)
     PEAK =info.data[i]["RANK"]
 
+    # Now check if fit has been done
+    if (os.path.exists('output_{:}.dat'.format(PEAK)) or os.path.exists('ngtsfit_{:}.html'.format(PEAK))): return  
 
     # Now wait for the lightcurve
     while not os.path.exists('30_min_lc.dat'):
@@ -69,6 +77,9 @@ def corner_lightcurve(i):
 
     # Get the peak for renaming 
     PEAK =info.data[i]["RANK"]
+
+    if os.path.exists('ngtsfit_{:}.html'.format(PEAK)): return  
+
 
     # Now wait for the lightcurve
     while not os.path.exists('output_{:}.dat'.format(PEAK)):
