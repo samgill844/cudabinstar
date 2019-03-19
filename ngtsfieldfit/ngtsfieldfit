@@ -86,7 +86,7 @@ def corner_lightcurve(i):
 
     # Now make and change to tmp directory to avoid thread races
     os.system('mkdir -p tmp_{:}'.format(PEAK))
-    os.system('cd tmp_{:}'.format(PEAK))
+    os.chdir('tmp_{:}'.format(PEAK))
 
     # Now make the plotting call, pipeing it to ngtslog and background since
     # it wont be as long as the fit (hopefully).
@@ -100,7 +100,7 @@ def corner_lightcurve(i):
     os.system('mv ngtsfit.html ../ngtsfit_{:}.html'.format(PEAK))
     
     # now change back to home directory and delete the temp directory
-    os.system('cd ..')
+    os.chdir('..')
     os.system('rm -r tmp_{:}'.format(PEAK))
 
     # Now remove the chain_{:}.dat to keep filespace at a minimum
