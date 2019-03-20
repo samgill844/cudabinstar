@@ -1,13 +1,13 @@
 #include <math.h>
 
-__device__ __host__ double  clip(double a, double b, double c)
+extern "C" {__device__ __host__ double  clip(double a, double b, double c)
 {
     if (a < b)   return b;
     else if (a > c)  return c;
     else          return a;
-}
+}}
 
-__device__ __host__ double Flux_drop_analytical_uniform( double z, double k, double SBR, double f)
+extern "C" {__device__ __host__ double Flux_drop_analytical_uniform( double z, double k, double SBR, double f)
 {
     if (z >= 1. + k)  return f;  	                    // no overlap
     if (z >= 1. &&  z <= k - 1.)  return 0.0;           // total eclipse of the star
@@ -18,19 +18,19 @@ __device__ __host__ double Flux_drop_analytical_uniform( double z, double k, dou
         double kap0 = acos(min((k*k + z*z - 1.)/2./k/z, 1.));
         return f - SBR*  (k*k*kap0 + kap1 - 0.5*sqrt(max(4.*z*z - pow(1. + z*z - k*k, 2.), 0.)))/M_PI;
     }
-}
+}}
 
 
-__device__ __host__ double q1(double z, double p, double c, double a, double g, double I_0)
+extern "C" {__device__ __host__ double q1(double z, double p, double c, double a, double g, double I_0)
 {
 	double zt = clip(abs(z), 0,1-p);
 	double s = 1-zt*zt;
 	double c0 = (1-c+c*pow(s,g));
 	double c2 = 0.5*a*c*pow(s,(g-2))*((a-1)*zt*zt-1);
     return 1-I_0*M_PI*p*p*(c0 + 0.25*p*p*c2 - 0.125*a*c*p*p*pow(s,(g-1)));
-}
+}}
 
-__device__ __host__ double q2(double z, double p, double c, double a, double g, double I_0, double eps)
+extern "C" {__device__ __host__ double q2(double z, double p, double c, double a, double g, double I_0, double eps)
 {
 	double zt = clip(abs(z), 1-p,1+p);
 	double d = clip((zt*zt - p*p + 1)/(2*zt),0,1);
@@ -57,10 +57,10 @@ __device__ __host__ double q2(double z, double p, double c, double a, double g, 
     double FF =  1 - I_0*(J1 - J2 + K1 - K2);
     if (FF < 0.9) FF=1.0;
     return FF;
-}
+}}
 
 
-__device__ __host__ double  Flux_drop_analytical_power_2(double z, double k, double c, double a, double f, double eps)
+extern "C" {__device__ __host__ double  Flux_drop_analytical_power_2(double z, double k, double c, double a, double f, double eps)
 {
     /*
     '''
@@ -86,7 +86,7 @@ __device__ __host__ double  Flux_drop_analytical_power_2(double z, double k, dou
     if (z < 1-k)           return q1(z, k, c, a, g, I_0);
     else if (abs(z-1) < k) return q2(z, k, c, a, g, I_0, eps);
     else                   return 1.0;
-}
+}}
 
 
 
@@ -96,7 +96,7 @@ __device__ __host__ double  Flux_drop_analytical_power_2(double z, double k, dou
 
 
 
-__device__ __host__ double ellpic_bulirsch(double n, double k)
+extern "C" {__device__ __host__ double ellpic_bulirsch(double n, double k)
 {
     double kc = sqrt(1.-k*k);
     double p = sqrt(n + 1.);
@@ -129,9 +129,9 @@ __device__ __host__ double ellpic_bulirsch(double n, double k)
         nit++;
     }
     return 0;
-}
+}}
 
-__device__ __host__ double  ellec(double k)
+extern "C" {__device__ __host__ double  ellec(double k)
 {
     double m1, a1, a2, a3, a4, b1, b2, b3, b4, ee1, ee2, ellec;
     // Computes polynomial approximation for the complete elliptic
@@ -149,9 +149,9 @@ __device__ __host__ double  ellec(double k)
     ee2 = m1*(b1 + m1*(b2 + m1*(b3 + m1*b4)))*log(1.0/m1);
     ellec = ee1 + ee2;
     return ellec;
-}
+}}
 
-__device__ __host__ double  ellk(double k)
+extern "C" {__device__ __host__ double  ellk(double k)
 {
     double a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ellk,  ek1, ek2, m1;
     // Computes polynomial approximation for the complete elliptic
@@ -171,9 +171,9 @@ __device__ __host__ double  ellk(double k)
     ek2 = (b0 + m1*(b1 + m1*(b2 + m1*(b3 + m1*b4))))*log(m1);
     ellk = ek1 - ek2;
     return ellk;
-}
+}}
 
-__device__ __host__ double  Flux_drop_analytical_quadratic(double d, double p, double c1, double c2, double tol)
+extern "C" {__device__ __host__ double  Flux_drop_analytical_quadratic(double d, double p, double c1, double c2, double tol)
 {
     /*'''
     Calculate the analytical flux drop from the quadratic limb-darkening law.
@@ -328,4 +328,4 @@ __device__ __host__ double  Flux_drop_analytical_quadratic(double d, double p, d
         if(d < p) lambdad += 2.0/3.0;
     }
     return 1.0 - ((1.0 - c1 - 2.0*c2)*lambdae + (c1 + 2.0*c2)*lambdad + c2*etad)/omega;
-}
+}}

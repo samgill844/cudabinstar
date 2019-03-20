@@ -1,5 +1,6 @@
 all : cudalc cudamc ngtsfit
 	mkdir -p lib 
+	mkdir -p libso
 	mkdir -p include
 	mkdir -p ~/bin
 	(cd cudalc; make; make install)
@@ -13,6 +14,7 @@ clean :
 	rm -f cudamc/*.o
 	rm -f ngtsfit/*.o
 	rm -f ngtsfit/ngtsfit
-
+	
 	rm -f include/*
 	rm -f lib/*
+	rm -f libso/*

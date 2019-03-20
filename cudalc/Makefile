@@ -23,3 +23,5 @@ clean:
 install : 
 	mv *.o ../lib
 	cp *.h ../include
+	nvcc -Xcompiler -fPIC -shared -o cudalc.so *.cu
+	mv cudalc.so ../libso

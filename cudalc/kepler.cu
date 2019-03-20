@@ -5,13 +5,18 @@
 /************************************
 *        Keplers equation           *
 ************************************/
+extern "C" {
 __device__ __host__ double kepler (double M, double E, double e) { return M - E + e*sin(E);}
-__device__ __host__ double dkepler (double E, double e) { return -1 + e*cos(E);}
+}
 
+extern "C" {
+__device__ __host__ double dkepler (double E, double e) { return -1 + e*cos(E);}
+}
 
 /************************************
 *        Eccentric Anomaly          *
 ************************************/
+extern "C" {
 __device__ __host__ double getEccentricAnomaly (double M, double e, int Accurate_Eccentric_Anomaly, double tol)
 {
     if (Accurate_Eccentric_Anomaly)
@@ -63,11 +68,12 @@ __device__ __host__ double getEccentricAnomaly (double M, double e, int Accurate
         return E;
     }
 } 
-
+}
 
 /********************************************
 *        Time of periastron passage         *
 ********************************************/
+extern "C" {
 __device__ __host__ double t_ecl_to_peri(double t_ecl, double e, double w, double incl, double radius_1, double p_sid, double t_ecl_tolerance, int Accurate_t_ecl)
 {
     // Define variables used
@@ -85,10 +91,12 @@ __device__ __host__ double t_ecl_to_peri(double t_ecl, double e, double w, doubl
     double delta_t = eta*p_sid/(2*M_PI);
     return t_ecl  - delta_t;
 }
+}
 
 /********************************************
 *        Calculate the true anomaly         *
 ********************************************/
+extern "C" {
 __host__ __device__ double getTrueAnomaly(double time, double  e, double w, double period, double t_zero, double incl, double radius_1, double t_ecl_tolerance, int Accurate_t_ecl,  int Accurate_Eccentric_Anomaly, double E_tol )
 {
     // Sort inclination out
@@ -103,20 +111,21 @@ __host__ __device__ double getTrueAnomaly(double time, double  e, double w, doub
     // Now return the true anomaly
     return 2.*atan(sqrt((1.+e)/(1.-e))*tan(E/2.));
 }
+}
 
 /***************************************************
 *        Calculate the projected seperaton         *
 ***************************************************/
-__device__ __host__ double get_z(double nu, double e, double incl, double w, double radius_1) {return (1-e*e) * sqrt( 1.0 - sin(incl)*sin(incl)  *  sin(nu + w)*sin(nu + w)) / (1 + e*sin(nu)) /radius_1;}
-__device__ __host__ double get_z_(double nu, double * z){return get_z(nu, z[0], z[1], z[2], z[3]);}
+extern "C" {__device__ __host__ double get_z(double nu, double e, double incl, double w, double radius_1) {return (1-e*e) * sqrt( 1.0 - sin(incl)*sin(incl)  *  sin(nu + w)*sin(nu + w)) / (1 + e*sin(nu)) /radius_1;}}
+extern "C" {__device__ __host__ double get_z_(double nu, double * z){return get_z(nu, z[0], z[1], z[2], z[3]);}}
 
 /***************************************************
 *        Calculate the projected position          *
 ***************************************************/
-__device__ __host__ double getProjectedPosition(double nu, double w, double incl) {return sin(nu + w)*sin(incl);}
+extern "C" {__device__ __host__ double getProjectedPosition(double nu, double w, double incl) {return sin(nu + w)*sin(incl);}}
 
 /*********************************************
 *        Calculate the mass function         *
 *********************************************/
-__device__ __host__ double mass_function_1(double e, double P, double K1) {return pow(1-e*e,1.5)*P*86400.1* pow(K1*1000,3)/(2*M_PI*G*1.989e30);}
-__device__ __host__ double mass_function_1_(double M2, double * z) {return (  pow(M2*sin(z[1]),3) / ( pow(z[0] + M2,2))) - mass_function_1(z[2], z[3], z[4]);}
+extern "C" {__device__ __host__ double mass_function_1(double e, double P, double K1) {return pow(1-e*e,1.5)*P*86400.1* pow(K1*1000,3)/(2*M_PI*G*1.989e30);}}
+extern "C" {__device__ __host__ double mass_function_1_(double M2, double * z) {return (  pow(M2*sin(z[1]),3) / ( pow(z[0] + M2,2))) - mass_function_1(z[2], z[3], z[4]);}}

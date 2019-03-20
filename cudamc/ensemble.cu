@@ -127,7 +127,7 @@ void CPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwalkers, doubl
        
        for (i=1; i < nsteps; i++)
        {
-              //#pragma omp parallel for
+              //#pragma omp parallel for shared(args, loglikliehoods, positions)
               for (j=0; j<nwalkers ; j++)
               {
                      // Get the index for the other Ensemble
