@@ -134,9 +134,9 @@ if __name__ == '__main__':
 
     print('\tCreating lightcurve files... ', end=''); sys.stdout.flush()
     writing_pool = Pool(5)
-    binning_pool = Pool(5)
-    fitting_pool = Pool(5)
-    corner_pool = Pool(5)
+    binning_pool = Pool(10)
+    fitting_pool = Pool(10)
+    corner_pool = Pool(10)
 
     writing_pool.map_async(write_lightcurves, range(len(obj_ids))[:])
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
