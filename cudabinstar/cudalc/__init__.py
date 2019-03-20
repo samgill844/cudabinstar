@@ -5,7 +5,7 @@ import os , sys
 import matplotlib.pyplot as plt 
 
 
-libso_path = '/'.join(os.path.realpath(__file__).split('/')[:-2]) + '/libso/'
+libso_path = '/'.join(os.path.realpath(__file__).split('/')[:-1])+'/'
 
 # First get cudalc so 
 dl = CDLL(libso_path+'cudalc.so', mode=RTLD_GLOBAL)
