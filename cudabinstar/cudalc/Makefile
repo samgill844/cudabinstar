@@ -16,7 +16,6 @@ rv.o : rv.cu kepler.o
 kepler.o : kepler.cu
 	${cc} ${COMPILER_FLAGS} kepler.cu -dc
 
-
 clean:
 	rm *.o
 

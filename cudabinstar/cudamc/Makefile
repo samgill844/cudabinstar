@@ -13,5 +13,5 @@ clean:
 	rm *.o
 
 install : 
-	mv *.o ../lib
-	cp *.h ../include
+	mv *.o ../../lib
+	cp *.h ../../include
