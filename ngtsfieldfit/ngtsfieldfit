@@ -93,15 +93,15 @@ def corner_lightcurve(i):
     os.system('ngtscorner ../chain_{:}.dat ../2_min_lc.dat ../30_min_lc.dat > ngtsfit.log'.format(PEAK))
 
     # Now rename files based on index
-    os.system('mv ngtsfit_best_model.png ../ngtsfit_best_model_{:}.png'.format(PEAK))
-    os.system('mv ngtsfit_corner_calculated_parameters.png ../ngtsfit_corner_calculated_parameters_{:}.png'.format(PEAK))
-    os.system('mv ngtsfit_corner_fitted_parameters.png ../ngtsfit_corner_fitted_parameters_{:}.png'.format(PEAK))
-    os.system('mv ngtsfit.log ../ngtsfit_{:}.log'.format(PEAK))
-    os.system('mv ngtsfit.html ../ngtsfit_{:}.html'.format(PEAK))
+    os.system('cp ngtsfit_best_model.png ../ngtsfit_best_model_{:}.png'.format(PEAK))
+    os.system('cp ngtsfit_corner_calculated_parameters.png ../ngtsfit_corner_calculated_parameters_{:}.png'.format(PEAK))
+    os.system('cp ngtsfit_corner_fitted_parameters.png ../ngtsfit_corner_fitted_parameters_{:}.png'.format(PEAK))
+    os.system('cp ngtsfit.log ../ngtsfit_{:}.log'.format(PEAK))
+    os.system('cp ngtsfit.html ../ngtsfit_{:}.html'.format(PEAK))
     
     # now change back to home directory and delete the temp directory
-    os.chdir('..')
-    os.system('rm -r tmp_{:}'.format(PEAK))
+    #os.chdir('..')
+    #os.system('rm -r tmp_{:}'.format(PEAK))
 
     # Now remove the chain_{:}.dat to keep filespace at a minimum
     #os.system('rm chain_{:}.dat'.format(PEAK))

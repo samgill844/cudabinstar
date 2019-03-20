@@ -475,15 +475,26 @@ int main(int argc, char* argv[])
     Part 5 - Launch the sampler
     ---------------------------*/
     clock_t start, diff;
+    int msec, number_of_models_per_second;
     switch (CPU_OR_GPU)
     {
         case 0 :
             // Now run
             printf("\n-----------------------------------");
             printf("\nCommencing Bayesian sampleing [CPU]\n"); fflush(stdout);
+            start = clock();
             CPU_parallel_stretch_move_sampler(nsteps, ndim, nwalkers, args, 
                 loglikliehoods, positions,
                 2.0);
+            printf("\n-----------------------------------");fflush(stdout);
+            diff = clock() - start;
+            msec = diff * 1000 / CLOCKS_PER_SEC;
+            number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
+            setlocale(LC_NUMERIC, "");
+            printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
+            printf("\nNumber of models per second : %'d", number_of_models_per_second);
+            printf("\nNumber of models per minute : %'d", 60*number_of_models_per_second);
+            printf("\n-----------------------------------");fflush(stdout);
             break;
 
         case 1 :
@@ -509,8 +520,8 @@ int main(int argc, char* argv[])
 
             printf("\n-----------------------------------");fflush(stdout);
             diff = clock() - start;
-            int msec = diff * 1000 / CLOCKS_PER_SEC;
-            int number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
+            msec = diff * 1000 / CLOCKS_PER_SEC;
+            number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
             setlocale(LC_NUMERIC, "");
             printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
             printf("\nNumber of models per second : %'d", number_of_models_per_second);
