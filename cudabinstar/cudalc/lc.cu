@@ -23,9 +23,20 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
     double e = fs*fs + fc*fc;
     double w  = atan2(fs, fc);
     incl = M_PI*incl/180.;
-
+    double phase;
+    double cut = radius_1*sqrt(pow(1 + k,2) + pow(cos(incl)/radius_1,2)) / M_PI;
     for (i=0; i < N_LC; i++)
     {
+        // Make first check
+        
+        phase =  (time[i] - t_zero) / period -  floor((time[i] - t_zero) /period);
+        phase = phase > 0.5 ? -phase + 1. : phase;
+        if (phase > cut & e==0 & SBR==0)
+        {
+            LC[i] = 1;
+            continue;
+        }
+
         // Get the true anomaly
         nu = getTrueAnomaly(time[i], e, w, period, t_zero, incl, radius_1, t_ecl_tolerance, Accurate_t_ecl,  Accurate_Eccentric_Anomaly, E_tol );
 
@@ -74,34 +85,44 @@ extern "C" {__host__ __device__ double lc_loglike(const double * time, const dou
     double w  = atan2(fs, fc);
     incl = M_PI*incl/180.;
 
-    double loglike=0.0, wt;
+    double loglike=0.0, wt, phase;
+    double cut = radius_1*sqrt(pow(1 + k,2) + pow(cos(incl)/radius_1,2)) / M_PI;
 
     for (i=0; i < N_LC; i++)
     {
-        // Get the true anomaly
-        nu = getTrueAnomaly(time[i], e, w, period, t_zero, incl, radius_1, t_ecl_tolerance, Accurate_t_ecl,  Accurate_Eccentric_Anomaly, E_tol );
-
-        // Get the projected seperation
-        z = get_z(nu, e, incl, w, radius_1);
-
-        // Initialse the flux
-        l = 1.;
-
-        // Check distance between them to see if its transiting
-        if (z < (1.0+ k))
+        phase =  (time[i] - t_zero) / period -  floor((time[i] - t_zero) /period);
+        phase = phase > 0.5 ? -phase + 1. : phase;
+        if (phase > cut & e==0 & SBR==0)
         {
-            // So it's eclipsing, lets find out if its a primary or secondary
-            f = getProjectedPosition(nu, w, incl);
+            l = 1;
+        }
+        else
+        {
+            // Get the true anomaly
+            nu = getTrueAnomaly(time[i], e, w, period, t_zero, incl, radius_1, t_ecl_tolerance, Accurate_t_ecl,  Accurate_Eccentric_Anomaly, E_tol );
 
-            if (f > 0)
+            // Get the projected seperation
+            z = get_z(nu, e, incl, w, radius_1);
+
+            // Initialse the flux
+            l = 1.;
+
+            // Check distance between them to see if its transiting
+            if (z < (1.0+ k))
             {
-                if (ld_law_1==0) l = Flux_drop_analytical_power_2(z, k, ldc_1_1, ldc_1_2, l, 1E-8);
-                if (ld_law_1==1) l = Flux_drop_analytical_quadratic(z, k, ldc_1_1, ldc_1_2, 1E-8);
-            }
-            else if (SBR>0.) l =  Flux_drop_analytical_uniform(z, k, SBR, l); // Secondary eclipse
+                // So it's eclipsing, lets find out if its a primary or secondary
+                f = getProjectedPosition(nu, w, incl);
 
-            // Don't forget to account for third light
-            if (light_3 > 0.0)  l = l/(1. + light_3) + (1.-1.0/(1. + light_3));
+                if (f > 0)
+                {
+                    if (ld_law_1==0) l = Flux_drop_analytical_power_2(z, k, ldc_1_1, ldc_1_2, l, 1E-8);
+                    if (ld_law_1==1) l = Flux_drop_analytical_quadratic(z, k, ldc_1_1, ldc_1_2, 1E-8);
+                }
+                else if (SBR>0.) l =  Flux_drop_analytical_uniform(z, k, SBR, l); // Secondary eclipse
+
+                // Don't forget to account for third light
+                if (light_3 > 0.0)  l = l/(1. + light_3) + (1.-1.0/(1. + light_3));
+            }
         }
 
         // convert to mag

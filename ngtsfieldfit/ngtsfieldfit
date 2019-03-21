@@ -81,7 +81,7 @@ def corner_lightcurve(i):
 
 
     # Now wait for the lightcurve
-    while not os.path.exists('chain_{:}.dat'.format(PEAK)):
+    while not os.path.exists('../chain_{:}.dat'.format(PEAK)):
         time.sleep(1)
 
     # Now make and change to tmp directory to avoid thread races

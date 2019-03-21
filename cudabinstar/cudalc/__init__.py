@@ -51,9 +51,20 @@ def __get_kepler_functions():
     getTrueAnomaly.argtypes = [c_double, c_double,c_double,c_double,c_double,c_double,c_double,c_double,c_int,c_int,c_double]
     getTrueAnomaly.restype = c_double
 
-    return kepler, dkepler, getEccentricAnomaly, t_ecl_to_peri,getTrueAnomaly
+    getProjectedPosition = dl.getProjectedPosition
+    getProjectedPosition.argtypes = [c_double, c_double,c_double]
+    getProjectedPosition.restype = c_double
 
-kepler, dkepler, getEccentricAnomaly, t_ecl_to_peri, getTrueAnomaly = __get_kepler_functions()
+    get_z = dl.get_z
+    get_z.argtypes = [c_double, c_double,c_double, c_double,c_double]
+    get_z.restype = c_double
+
+    return kepler, dkepler, getEccentricAnomaly, t_ecl_to_peri,getTrueAnomaly, getProjectedPosition, get_z
+
+
+
+kepler, dkepler, getEccentricAnomaly, t_ecl_to_peri, getTrueAnomaly, getProjectedPosition, get_z= __get_kepler_functions()
+
 '''
     extern "C" {__device__ __host__ double kepler (double M, double E, double e);}
 extern "C" {__device__ __host__ double dkepler (double E, double e);}
