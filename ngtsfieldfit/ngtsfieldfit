@@ -9,6 +9,7 @@ from tqdm import tqdm
 from multiprocessing import Pool
 import multiprocessing
 
+
 def write_lightcurves(i):
     # Firs tchange the working directory
     os.chdir(home + '/{:}/{:}'.format(prod_id, obj_ids[i]) )
@@ -92,6 +93,9 @@ def corner_lightcurve(i):
     # it wont be as long as the fit (hopefully).
     os.system('ngtscorner ../chain_{:}.dat ../2_min_lc.dat ../30_min_lc.dat > ngtsfit.log'.format(PEAK))
 
+    global complete
+    complete += 1
+    print('\r\tComplete {} out of {}'.format(complete, len(info.data["OBJ_ID"]) ), end='')
     # Now rename files based on index
     #os.system('cp ngtsfit_best_model.png ../ngtsfit_best_model_{:}.png'.format(PEAK))
     #os.system('cp ngtsfit_corner_calculated_parameters.png ../ngtsfit_corner_calculated_parameters_{:}.png'.format(PEAK))
@@ -105,6 +109,11 @@ def corner_lightcurve(i):
 
     # Now remove the chain_{:}.dat to keep filespace at a minimum
     #os.system('rm chain_{:}.dat'.format(PEAK))
+
+
+
+
+complete = 0
 
 if __name__ == '__main__':
 
@@ -142,6 +151,8 @@ if __name__ == '__main__':
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
     fitting_pool.map_async(fit_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])                             
     corner_pool.map_async(corner_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])
+
+    print('\tProgress:')
 
     writing_pool.close()
     writing_pool.join()
