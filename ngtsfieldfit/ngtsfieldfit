@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
     # Now create the product ID folder
     # Run this on single thread since it's quick
-    os.system('rm -r -f {:}'.format(prod_id))
+    #os.system('rm -r -f {:}'.format(prod_id))
     os.system('mkdir -p {:}'.format(prod_id))
 
     # Now we need to get a list of independent object IDs

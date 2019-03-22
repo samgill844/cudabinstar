@@ -92,11 +92,7 @@ void readlread_3_col(char * filename, int lines_to_read, double * x, double * y,
 
 int main(int argc, char* argv[])
 {
-    printf("\n------------------------------------");
-    printf("\n-          NGTSfit V0.1            -");
-    printf("\n-      samgill844@gmail.com        -");
-    printf("\n------------------------------------");
-    printf("\e[?25l"); // stop blinking cursor
+
 
     // Filename
     char *input_filename = "ngts.lc";
@@ -112,6 +108,7 @@ int main(int argc, char* argv[])
     double zp = 0.;
     double jitter = 0.001;
     double b = 0.1;
+    double light_3 = 0.;
 
     // Limb-darkening parameters
     int ld_law = 0;
@@ -153,6 +150,7 @@ int main(int argc, char* argv[])
             {"zp",            required_argument,       0, 'z'},
             {"jitter",            required_argument,  0, 'j'},
             {"impact",            required_argument,  0, 'u'},
+            {"light_3",            required_argument,  0, 'i'},
 
             {"ld_1",         required_argument,       0, 'l'},
             {"ldc_1",        required_argument,       0, 'q'},
@@ -259,6 +257,10 @@ int main(int argc, char* argv[])
             sscanf(optarg,"%d",&device);
             break;
 
+        case 'i':
+            sscanf(optarg,"%lf",&light_3);
+            break;
+
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -268,11 +270,20 @@ int main(int argc, char* argv[])
         }
 
     }
-    
+    if (verbose_flag){
+
+        printf("\n------------------------------------");
+        printf("\n-          NGTSfit V0.1            -");
+        printf("\n-      samgill844@gmail.com        -");
+        printf("\n------------------------------------");
+        printf("\e[?25l"); // stop blinking cursor
+
+
     printf("\nExample use:");
     printf("\nngtsfit [filename] [t_zero] [period] [pcut] [radius_1=0.2] [k=0.2] [h1=0.65] [h2=0.37]");
     printf("\n\t\t[nsteps=1000] [burn_in=950] [nwalkers=10240] [threads_per_block=256]");
     printf("\n\t\t[output_file=NGTSfit_results.dat] [gpu // cpu]\n\n");
+    }
 
     int blocks = (int) ceil(nwalkers/threads_per_block);
     
@@ -280,6 +291,7 @@ int main(int argc, char* argv[])
     /*---------------------------
      Part 0 - report choices
      ---------------------------*/
+     if (verbose_flag){
     printf("\nFitting parameters:");
     printf("\n\tnsteps : %d", nsteps); fflush(stdout);
     printf("\n\tburn in : %d", burn_in); fflush(stdout);
@@ -300,23 +312,24 @@ int main(int argc, char* argv[])
     printf("\n\tzp : %f", zp);
     printf("\n\tjitter : %f", jitter);
     printf("\n\timpact : %f", b);
+    printf("\n\tlight_3 : %f", light_3);
 
     printf("\n\tldc_1 : %f", ldc_1);
     printf("\n\tldc_2 : %f", ldc_2);
-
+     }
 
     /*---------------------------
      Part 1 - read the LC 
      ---------------------------*/
-    printf("\n\nReading data from %s:", input_filename);
+    if (verbose_flag) printf("\n\nReading data from %s:", input_filename);
     double *time, *d_time, *LC, *d_LC, *LC_ERR, *d_LC_ERR, *d_N_LC;
     int N_LC = count_3_col(input_filename, t_zero, period, pcut);
-    printf("\n\tNumber of lines : %d", N_LC);fflush(stdout);
+    if (verbose_flag) { printf("\n\tNumber of lines : %d", N_LC);fflush(stdout);};
     time = (double *) malloc(N_LC*sizeof(double));
     LC = (double *) malloc(N_LC*sizeof(double));
     LC_ERR = (double *) malloc(N_LC*sizeof(double));
     readlread_3_col(input_filename, N_LC, time, LC, LC_ERR,  t_zero, period, pcut);
-    printf("\n\tRead in OK!");fflush(stdout);
+    if (verbose_flag) { printf("\n\tRead in OK!");fflush(stdout);};
 
 
     /*---------------------------
@@ -354,22 +367,24 @@ int main(int argc, char* argv[])
         0., 0.,
         0, 0.001, 0, 0.001,
         N_LC );
-    printf("\n\n------------------------------\nInitial loglike : %f\n------------------------------\n", loglik);
+        if (verbose_flag) { printf("\n\n------------------------------\nInitial loglike : %f\n------------------------------\n", loglik);};
 
     /*---------------------------
     Part 3 - configure the arguments for either GPU ot CPU
     ---------------------------*/
-    printf("Configuring arguments for the "); fflush(stdout);
+    if (verbose_flag) { printf("Configuring arguments for the "); fflush(stdout);};
     double ** args, **d_args;
-    switch(CPU_OR_GPU){ case 1 : printf("GPU... "); break;  case 0 : printf("CPU... "); break;}
+    if (verbose_flag) { switch(CPU_OR_GPU){ case 1 : printf("GPU... "); break;  case 0 : printf("CPU... "); break;}};
 
     double * tmpp;
-    tmpp = (double *) malloc(5*sizeof(double));
+    tmpp = (double *) malloc(6*sizeof(double));
     tmpp[0] = (double) N_LC;
     tmpp[1] = t_zero;
     tmpp[2] = period;
     tmpp[3] = ldc_1;
     tmpp[4] = ldc_2;
+    tmpp[5] = light_3;
+
     switch(CPU_OR_GPU){ 
                         
         case 0:
@@ -402,14 +417,14 @@ int main(int argc, char* argv[])
                     break;
 
                 }
-    printf("done."); fflush(stdout);
+    if (verbose_flag) { printf("done."); fflush(stdout);};
 
 
 
     /*---------------------------
     Part 4 - Create the starting positions
     ---------------------------*/
-    printf("\nCreating the sarting positions."); fflush(stdout);
+    if (verbose_flag) { printf("\nCreating the sarting positions."); fflush(stdout);};
     double scatter = 0.0001 ;
     double * d_positions, * d_loglikliehoods;
     double * positions, *loglikliehoods ;
@@ -426,7 +441,7 @@ int main(int argc, char* argv[])
                     positions[j*ndim + k] = theta[k] + scatter*sampleNormal_d();
                 }
             }
-            printf(" done."); fflush(stdout);
+            if (verbose_flag) { printf(" done."); fflush(stdout);};
             break    ;  
 
         case 1:
@@ -440,7 +455,7 @@ int main(int argc, char* argv[])
                 scatter, 
                 d_positions,
                 1);
-            printf(" done."); fflush(stdout);
+            if (verbose_flag) { printf(" done."); fflush(stdout);};
             break;   
     }
 
@@ -451,10 +466,10 @@ int main(int argc, char* argv[])
     if (CPU_OR_GPU==1)
     {
         // Create the curand states
-        printf("\nCreating the curand states... "); fflush(stdout);
+        if (verbose_flag) { printf("\nCreating the curand states... "); fflush(stdout);}
         gpuErrchk(cudaMalloc((void**)&devState, nwalkers*sizeof(curandState)));
         initCurand<<<ceil(nwalkers/256),256>>>(devState, 1);
-        printf(" done."); fflush(stdout);
+        if (verbose_flag) { printf(" done."); fflush(stdout);};
     }
 
     /*---------------------------
@@ -462,8 +477,7 @@ int main(int argc, char* argv[])
     ---------------------------*/
     int * d_block_progress;
     int i;
-    
-    if (CPU_OR_GPU==1)
+    if (CPU_OR_GPU==1 && verbose_flag)
     {
         int d_block_progress__[1] = {0};
         gpuErrchk(cudaMalloc(&d_block_progress, blocks*sizeof(int))); 
@@ -480,21 +494,25 @@ int main(int argc, char* argv[])
     {
         case 0 :
             // Now run
+            if (verbose_flag) { 
             printf("\n-----------------------------------");
-            printf("\nCommencing Bayesian sampleing [CPU]\n"); fflush(stdout);
+            printf("\nCommencing Bayesian sampleing [CPU]\n"); fflush(stdout);}
             start = clock();
             CPU_parallel_stretch_move_sampler(nsteps, ndim, nwalkers, args, 
                 loglikliehoods, positions,
-                2.0);
-            printf("\n-----------------------------------");fflush(stdout);
+                2.0, verbose_flag);
+                if (verbose_flag) { 
+                    printf("\n-----------------------------------");fflush(stdout);
+                }
             diff = clock() - start;
             msec = diff * 1000 / CLOCKS_PER_SEC;
             number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
             setlocale(LC_NUMERIC, "");
-            printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
+            if (verbose_flag) { 
+                printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
             printf("\nNumber of models per second : %'d", number_of_models_per_second);
             printf("\nNumber of models per minute : %'d", 60*number_of_models_per_second);
-            printf("\n-----------------------------------");fflush(stdout);
+            printf("\n-----------------------------------");fflush(stdout);}
             break;
 
         case 1 :
@@ -504,9 +522,10 @@ int main(int argc, char* argv[])
 
 
             // Now run
-            printf("\n-----------------------------------");
+            if (verbose_flag) { 
+                printf("\n-----------------------------------");
             printf("\nCommencing Bayesian sampleing [GPU]\n"); fflush(stdout);
-            printf("Progress of each block [%%] given below..."); 
+            printf("Progress of each block [%%] given below..."); }
 
             // Start the progress bar
             sampler_progress<<<1, 1, 0,streams[0] >>>(blocks, d_block_progress);
@@ -518,15 +537,17 @@ int main(int argc, char* argv[])
             cudaGetLastError();
             cudaDeviceSynchronize(); // make sure the kernel is done before carrying on.
 
-            printf("\n-----------------------------------");fflush(stdout);
+            if (verbose_flag) { 
+                printf("\n-----------------------------------");fflush(stdout);}
             diff = clock() - start;
             msec = diff * 1000 / CLOCKS_PER_SEC;
             number_of_models_per_second = nsteps*nwalkers/ (msec/1000);
             setlocale(LC_NUMERIC, "");
-            printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
+            if (verbose_flag) { 
+                printf("\nTime taken %'d seconds %'d milliseconds", msec/1000, msec%1000);
             printf("\nNumber of models per second : %'d", number_of_models_per_second);
             printf("\nNumber of models per minute : %'d", 60*number_of_models_per_second);
-            printf("\n-----------------------------------");fflush(stdout);
+            printf("\n-----------------------------------");fflush(stdout);}
             break;
     }
     
@@ -535,22 +556,24 @@ int main(int argc, char* argv[])
     Part 6 - Write out results
     ---------------------------*/
     // Write out
-    printf("\nWriting results... "); fflush(stdout);
+    if (verbose_flag) { 
+        printf("\nWriting results... "); fflush(stdout);}
     switch (CPU_OR_GPU)
     {
         case 0 :
             write_out_results(burn_in, nsteps, ndim, nwalkers,
                 blocks, threads_per_block,
-                positions, loglikliehoods, output_filename, CPU_OR_GPU);
+                positions, loglikliehoods, output_filename, CPU_OR_GPU, verbose_flag);
             break;
         case 1 :
             write_out_results(burn_in, nsteps, ndim, nwalkers,
                 blocks, threads_per_block,
-                d_positions, d_loglikliehoods, output_filename, CPU_OR_GPU);
+                d_positions, d_loglikliehoods, output_filename, CPU_OR_GPU, verbose_flag);
             break;
     }
 
-    printf(" done.\n\n"); fflush(stdout);
+    if (verbose_flag) { 
+        printf(" done.\n\n"); fflush(stdout);}
     
     
     

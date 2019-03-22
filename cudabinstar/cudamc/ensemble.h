@@ -11,4 +11,4 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
 
 void CPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwalkers, double ** args, 
        double * loglikliehoods, double * positions,
-       float a);
+       float a, int verbose_flag);

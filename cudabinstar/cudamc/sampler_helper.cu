@@ -107,7 +107,7 @@ void create_starting_positions(const double * theta,
 void write_out_results(const int burn_in, const int nsteps, const int ndim, const int nwalkers,
                     const int blocks, const int threads_per_block,
                     double * d_positions, double * d_loglikliehoods, const char * output_filename,
-                    int cpuORgpu)
+                    int cpuORgpu, int verbose_flag)
 {
     // Then open output file
     FILE * fp;
@@ -117,8 +117,9 @@ void write_out_results(const int burn_in, const int nsteps, const int ndim, cons
     switch(cpuORgpu)
     {
         case 0 :
+            if (verbose_flag){
             printf("\n");
-            printf("Progress : %d %d %.2f", 0, 0, 0.); fflush(stdout);
+            printf("Progress : %d %d %.2f", 0, 0, 0.); fflush(stdout);};
             // For each step, we are going to write out block-by-block
             for (i=burn_in; i < nsteps; i++)
             {
@@ -134,7 +135,7 @@ void write_out_results(const int burn_in, const int nsteps, const int ndim, cons
                     index2d = get_2D_index(i, j, nwalkers );
                     fprintf(fp, ",%f", d_loglikliehoods[index2d]);
                 }
-                printf("\rProgress : %2d", i); fflush(stdout);
+                if (verbose_flag) {printf("\rProgress : %2d", i); fflush(stdout);};
             }
             break;
 
@@ -145,8 +146,8 @@ void write_out_results(const int burn_in, const int nsteps, const int ndim, cons
             p0 = (double *) malloc(threads_per_block*ndim*sizeof(double));
             loglikliehoods = (double *) malloc(threads_per_block*sizeof(double));
 
-            printf("\n");
-            printf("Progress : %d %d %.2f", 0, 0, 0.); fflush(stdout);
+            if (verbose_flag) {printf("\n");
+            printf("Progress : %d %d %.2f", 0, 0, 0.); fflush(stdout);};
             // For each step, we are going to write out block-by-block
             for (i=burn_in; i < nsteps; i++)
             {
@@ -165,7 +166,7 @@ void write_out_results(const int burn_in, const int nsteps, const int ndim, cons
                             fprintf(fp, ",%f", p0[k*ndim + l]);
                         fprintf(fp, ",%f", loglikliehoods[k]);
 
-                        printf("\rProgress : %2d %2d %2.2f", i+1, j+1, (float) k / (float) threads_per_block); fflush(stdout);
+                        if (verbose_flag) {printf("\rProgress : %2d %2d %2.2f", i+1, j+1, (float) k / (float) threads_per_block); fflush(stdout);};
                     }
                 }
             }

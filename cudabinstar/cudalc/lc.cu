@@ -6,6 +6,7 @@
 #include "flux_drop.h"
 
 
+
 extern "C" {__host__ __device__ void lc(const double * time, double * LC,
                         double t_zero, double period,
                         double radius_1, double k ,
@@ -134,3 +135,79 @@ extern "C" {__host__ __device__ double lc_loglike(const double * time, const dou
     }
     return loglike;
 }}
+
+/*
+__global__ void  lc_kernel(const double * time, double * LC,
+    double t_zero, double period,
+    double radius_1, double k ,
+    double fs, double fc, 
+    double incl,
+    int ld_law_1, double ldc_1_1, double ldc_1_2, 
+    double SBR, double light_3,
+    int Accurate_t_ecl, double t_ecl_tolerance, int Accurate_Eccentric_Anomaly, double E_tol,
+    int N_LC )
+{
+    // Get the index
+    int j = blockIdx.x*blockDim.x + threadIdx.x;
+
+    // Now laucn the kernel
+    // We want 1 thread per LC
+    void lc(time, &LC[j*N_LC],
+        t_zero[j], period[j],
+        radius_1[j], k[j] ,
+        fs[j], fc[j], 
+        incl[j],
+        ld_law_1, ldc_1_1[j], ldc_1_2[j], 
+        SBR[j], light_3[j],
+        Accurate_t_ecl, t_ecl_tolerance,  Accurate_Eccentric_Anomaly, E_tol,
+         N_LC )
+}
+
+
+extern "C" {__host__ __device__ void lc_batch(const double * time, double * LC,
+    double * t_zero, double * period,
+    double * radius_1, double * k ,
+    double * fs, double * fc, 
+    double * incl,
+    int ld_law_1, double * ldc_1_1, double * ldc_1_2, 
+    double * SBR, double * light_3,
+    int Accurate_t_ecl, double t_ecl_tolerance, int Accurate_Eccentric_Anomaly, double E_tol,
+    int N_LC, int nmodels, int threads_per_block )
+{
+
+    // Define pointers
+    double *d_time;
+    double *d_LC;
+    double *d_t_zero;
+    double *d_period;
+    double *d_radius_1;
+    double *d_k;
+    double *d_k;
+    double *d_k;
+    double *d_k;
+    double *d_k;
+    double *d_k;
+    double *d_k;
+    double *d_k;
+
+
+    // first malloc
+    cudaMalloc(&d_time, N_LC*sizeof(double)); 
+    cudaMalloc(&d_LC, N_LC*nmodels*sizeof(double)); 
+
+    // then copy
+    cudaMemcpy(d_time, time, N_LC*sizeof(double), cudaMemcpyHostToDevice);
+
+    // Now execute
+    lc_kernel<<<ceil(nmodels/threads_per_block), threads_per_block >>>(d_time, d_LC,
+        t_zero, period,
+        radius_1, k ,
+        fs, fc, 
+        incl,
+        ld_law_1, ldc_1_1, ldc_1_2, 
+        SBR, light_3,
+        Accurate_t_ecl, t_ecl_tolerance, Accurate_Eccentric_Anomaly, E_tol,
+        N_LC )
+
+}}
+*/

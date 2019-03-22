@@ -124,7 +124,7 @@ double lnlikec( double * positions, int index3d, double ** args )
         0., 0., 
         incl,
         0, ld1, ld2, 
-        0., 0.,
+        0., args[3][5],
         0, 0.001, 0, 0.001,
         (int) args[3][0] ) - 0.5*( pow(positions[index3d+4] - args[3][3], 2)/pow(0.003,2) + pow(positions[index3d+5] - args[3][4], 2)/pow(0.047,2));
     if (l==-INFINITY) return -INFINITY;

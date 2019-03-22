@@ -108,7 +108,7 @@ __global__ void GPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwal
 *****************************************/
 void CPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwalkers, double ** args, 
        double * loglikliehoods, double * positions,
-       float a)
+       float a, int verbose_flag)
 {
        int i,j,k, index, index2d, index2d_previous, index3d, index3d_previous, index3d_previous_ensemble;
        double Z;
@@ -170,7 +170,8 @@ void CPU_parallel_stretch_move_sampler(int nsteps, int ndim, int nwalkers, doubl
                             }
                      }  
               }
-              printf("\rStep %4d out of %4d", i+1, nsteps);
+              if (verbose_flag) 
+              {printf("\rStep %4d out of %4d", i+1, nsteps);};
        }
        
 }
