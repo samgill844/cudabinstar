@@ -93,9 +93,9 @@ def corner_lightcurve(i):
     # it wont be as long as the fit (hopefully).
     os.system('ngtscorner ../chain_{:}.dat ../2_min_lc.dat ../30_min_lc.dat > ngtsfit.log'.format(PEAK))
 
-    global complete
-    complete += 1
-    print('\r\tComplete {} out of {}'.format(complete, len(info.data["OBJ_ID"]) ), end='')
+    #global complete
+    #complete += 1
+    #print('\r\tComplete {} out of {}'.format(complete, len(info.data["OBJ_ID"]) ), end='')
     # Now rename files based on index
     #os.system('cp ngtsfit_best_model.png ../ngtsfit_best_model_{:}.png'.format(PEAK))
     #os.system('cp ngtsfit_corner_calculated_parameters.png ../ngtsfit_corner_calculated_parameters_{:}.png'.format(PEAK))
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     lightcurves = h[5]
 
 
-    print('\tCreating lightcurve files... ', end=''); sys.stdout.flush()
+    print('\tCreating lightcurve files... '); sys.stdout.flush()
     writing_pool = Pool(5)
     binning_pool = Pool(10)
     fitting_pool = Pool(10)
