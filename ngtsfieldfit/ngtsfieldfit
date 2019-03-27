@@ -160,7 +160,7 @@ if __name__ == '__main__':
 
     if switch_number==2:
         binning_pool = Pool(NPROC)
-        binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:5])
+        binning_pool.map(bin_lightcurves, range(len(obj_ids))[:5])
         binning_pool.close()
         binning_pool.join()
     '''
