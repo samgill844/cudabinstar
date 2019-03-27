@@ -36,8 +36,8 @@ def bin_lightcurves(i):
     if (os.path.exists('2_min_lc.dat') and os.path.exists('30_min_lc.dat')) : return  
 
     # The wait for the file to be made by the "write_lightcurves" processes...
-    while not os.path.exists('ngts.lc'):
-        time.sleep(1)
+    #while not os.path.exists('ngts.lc'):
+    #    time.sleep(1)
     os.system('ngtsbin ngts.lc 2')
     os.system('ngtsbin ngts.lc 30')
 
@@ -114,50 +114,67 @@ def corner_lightcurve(i):
 
 
 complete = 0
-
 if __name__ == '__main__':
 
     # Load the fits file
     h = fits.open(sys.argv[1])
-
-    # Now define a couple of paths 
     prod_id = str(h[0].header['PROD_ID'])
-    print('Processing {:} [product ID {:}]'.format(h[0].header['FIELD'] +'_' +  h[0].header['TAG'], prod_id))
-
-    # Now create the product ID folder
-    # Run this on single thread since it's quick
-    #os.system('rm -r -f {:}'.format(prod_id))
-    os.system('mkdir -p {:}'.format(prod_id))
-
-    # Now we need to get a list of independent object IDs
     obj_ids = np.unique(h[4].data["OBJ_ID"])  
-    print('\tCreating file structure... ', end=''); sys.stdout.flush()
-    for i in range(len(obj_ids))[:] : os.system('mkdir {:}/{:}'.format(prod_id, obj_ids[i]))
-    print('done.')
-
-    # Create  this to allow multiprocessing
-    home = os.getcwd()
+    home = '/home/sam/Software/cudabinstar/ngtsfieldfit'
     info = h[4]
-    lightcurves = h[5]
+    
+    # Ask What we want to do?
+    # 0 screate the file structure
+    # 1 Creat the lightcurve files
+    # 2 Fit the lightcurves using ngtsfit
+    # 3 Render the plots
+    switch_number = int(sys.argv[2])
+
+    # Number of processes
+    NPROC = int(sys.argv[3])
+
+    if switch_number==0:
+        # Now define a couple of paths 
+        print('Processing {:} [product ID {:}]'.format(h[0].header['FIELD'] +'_' +  h[0].header['TAG'], prod_id))
+
+        # Now create the product ID folder
+        # Run this on single thread since it's quick
+        os.system('mkdir -p {:}'.format(prod_id))
+
+        # Now we need to get a list of independent object IDs
+        print('\tCreating file structure... ', end=''); sys.stdout.flush()
+        for i in range(len(obj_ids))[:5] : os.system('mkdir -p {:}/{:}'.format(prod_id, obj_ids[i]))
+        print('done.')
 
 
+    
+    # Create  this to allow multiprocessing
+    if switch_number==1:
+        lightcurves = h[5]
+        writing_pool = Pool(NPROC)
+        writing_pool.map(write_lightcurves, range(len(obj_ids))[:5])
+        writing_pool.close()
+        writing_pool.join()
+
+    if switch_number==2:
+        binning_pool = Pool(NPROC)
+        binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:5])
+        binning_pool.close()
+        binning_pool.join()
+    '''
     print('\tCreating lightcurve files... '); sys.stdout.flush()
-    writing_pool = Pool(5)
     binning_pool = Pool(10)
     fitting_pool = Pool(10)
     corner_pool = Pool(10)
 
-    writing_pool.map_async(write_lightcurves, range(len(obj_ids))[:])
     binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
     fitting_pool.map_async(fit_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])                             
     corner_pool.map_async(corner_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])
 
     print('\tProgress:')
 
-    writing_pool.close()
-    writing_pool.join()
-    binning_pool.close()
-    binning_pool.join()
+
+
     fitting_pool.close()
     fitting_pool.join()
     corner_pool.close()
@@ -171,3 +188,4 @@ if __name__ == '__main__':
         fit_lightcurve(i)
     os.chdir(home)
     print(' ... done.')
+    '''
