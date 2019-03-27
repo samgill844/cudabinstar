@@ -22,8 +22,8 @@ rho_sun = (constants.M_sun/(4*np.pi*constants.R_sun**3/3)).value
 radius_1 = (constants.R_sun / constants.au ).value
 R_jup_R_sun = constants.R_jup.value / constants.R_sun.value
 
-exodata = Table.read('/home/u1870241/bin/exoplanet.eu_catalog.csv', format='csv')
-#exodata = Table.read('/home/sam/bin/exoplanet.eu_catalog.csv', format='csv')
+#exodata = Table.read('/home/u1870241/bin/exoplanet.eu_catalog.csv', format='csv')
+exodata = Table.read('/home/sam/bin/exoplanet.eu_catalog.csv', format='csv')
 
 def rho_func(period, radius_1) : 
 	return (radius_1**-3)*3*np.pi / (G*(period*86400)**2) / rho_sun
@@ -38,13 +38,12 @@ def transit_duration(period, radius_1, k, b):
 	par2 = np.clip(  radius_1 * par1 , -1,1)
 	t_dur =  (period / np.pi)*np.arcsin( par2 ) / np.sin(incl)
 	t_dur[np.isnan(t_dur)] = np.median(t_dur[np.isnan(t_dur)] )
-	return t_dur
-	
+	return t_dur 
 
 
-if __name__ =="__main__":
-	if (len(sys.argv) < 2) : raise ValueError('No filename specified.')
-	
+
+
+def report_parameters(filename):
 	tmp = np.loadtxt(sys.argv[1],  delimiter=',')
 	labels = ['t_zero [HJD]', 'Period [d]', 'R1/a', 'R2/R1', 'h1', 'h2', 'b', 'zero-point', 'Jitter [mag.]']
 	labels3 = ['\n\nT$_0$', '\n\nP [d]', '\n\nR$_*$/a', '\n\nR$_2$/R$_*$', '\n\nh$_1$', '\n\nh$_2$', '\n\nb', '\n\n$z_p$', '\n\n$\sigma$ [mag.]']
@@ -55,9 +54,7 @@ if __name__ =="__main__":
 	low_err = median_step - np.percentile(tmp, 16, axis=0)[3:-1]
 	high_err = np.percentile(tmp, 84, axis=0)[3:-1] - median_step
 
-	#################################################################################
-	# STEP 1 - REPORT THE PARAMETERS AND 1-SIGMA UNCERTAINTY
-	#################################################################################
+
 	# Now report
 	print('---------------------------------------------------------------------------------------')
 	print('-                           Fitted parameters                                         -')
@@ -84,11 +81,12 @@ if __name__ =="__main__":
 	t_f, best_t_f = t_f/3600, best_t_f / 3600
 	print('{:>15} = {:>15.2f} + {:>15.2f} - {:>15.2f} [{:>15.2f}]'.format('Duration', np.median(t_f), np.percentile(t_f, 84)-np.median(t_f), np.median(t_f) - np.percentile(t_f, 16), t_f[best_idx_rho]  ))
 	print('---------------------------------------------------------------------------------------')
-	
-	#################################################################################
-	# STEP 2 - CREATE THE HTML TABLE FOR OPIS
-	#################################################################################
 
+
+
+	#################################################################################
+	# CREATE THE HTML TABLE FOR OPIS
+	#################################################################################	
 	# Now generate HTML table compliant for OPIS
 	opis_table = Table()
 	labels_l = ['t_zero [HJD]', 'Period [d]', 'R1/a', 'R2/R1', 'h1', 'h2', 'b', 'zero-point', 'Jitter [mag.]', 'Density [Sun]', 'Duration [hr]']
@@ -125,14 +123,16 @@ if __name__ =="__main__":
 	opis_table.add_column(high_col)
 	opis_table.add_column(best_col)
 
-	opis_table.write('ngtsfit.html', format='html')
+	opis_table.write('ngtsfit.html', format='html')   
 
 
+def corner_calculated_parameters(filename):
+	tmp = np.loadtxt(sys.argv[1],  delimiter=',')
+	labels3 = ['\n\nT$_0$', '\n\nP [d]', '\n\nR$_*$/a', '\n\nR$_2$/R$_*$', '\n\nh$_1$', '\n\nh$_2$', '\n\nb', '\n\n$z_p$', '\n\n$\sigma$ [mag.]']
 
-	
-	#################################################################################
-	# STEP 3 - CREATE THE CORNER FOR FITTED PARAMETERS
-	#################################################################################
+	best_idx = np.argmax(tmp[:,-1])
+	best_step = tmp[best_idx][3:-1]
+	median_step = np.median(tmp, axis=0)[3:-1]
 
 	fig_corner = corner.corner(tmp[:, 3:-1], labels=labels3, plot_contours=False  )
 	ndim=9
@@ -156,14 +156,23 @@ if __name__ =="__main__":
 
 	fig_corner.subplots_adjust(left=0.04, bottom=0.06, right=0.997, top=1, wspace=0, hspace=0)
 	fig_corner.savefig('ngtsfit_corner_fitted_parameters.png')
+	plt.close() 
 
 
 
+def corner_fitted_parameters(filename):
+	tmp = np.loadtxt(sys.argv[1],  delimiter=',')
+
+	best_idx = np.argmax(tmp[:,-1])
+	best_step = tmp[best_idx][3:-1]
+	median_step = np.median(tmp, axis=0)[3:-1]
+
+	rho =  rho_func(tmp[:,4], tmp[:,5])                            # solar units
+
+	t_f = transit_duration(tmp[:,4], tmp[:,5], tmp[:,6], tmp[:,9]) # in seconds
+	t_f = t_f/ 3600                                               # in hours
 
 
-	#################################################################################
-	# STEP 3 - CREATE THE CORNER FOR CALCUALTE PARAMETERS
-	#################################################################################
 	tmp11 = np.array([rho.tolist(), t_f.tolist()]).T
 	fig_corner2 = corner.corner(tmp11, labels=[r'$\rho_*$ [Sun]', r'T$_{\rm dur}$ [hr]'], plot_contours=False )
 	ndim=2
@@ -190,226 +199,290 @@ if __name__ =="__main__":
 
 	fig_corner2.subplots_adjust(left=0.16, bottom=0.16, right=0.997, top=1, wspace=0, hspace=0)
 	fig_corner2.savefig('ngtsfit_corner_calculated_parameters.png')
+	plt.close()
 
+
+
+
+def plot_best_model(filename, lc_file1, lc_file2):
+	tmp = np.loadtxt(sys.argv[1],  delimiter=',')
+
+	best_idx = np.argmax(tmp[:,-1])
+	best_step = tmp[best_idx][3:-1]
+
+	#################################################################################
+	# STEP 5 - PLOT BEST MODEL
+	#################################################################################
+	#if (len(sys.argv) > 4): alpha = 0.1# float(sys.argv[4])
+	#else : alpha = 1.
+	alpha = 0.1
+
+	# Plot 1 min bin
+	time, mag, mag_err = np.loadtxt(lc_file1).T
+	fig_phot, ax_phot = plt.subplots(figsize=(19,5))
+	ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3]), mag, c='k', alpha = alpha, s=5)
+	ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3])-1, mag, c='k', alpha = alpha, s=5)
+	scatter2 = np.std(mag)
 	
 
+	#plot 30 minute bin
+	time, mag, mag_err = np.loadtxt(lc_file2).T
+	ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3]), mag, c='r', s=5)
+	ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3])-1, mag, c='r', s=5)
+	scatter30 = np.std(mag)
 
+	ax_phot.invert_yaxis()
+	ax_phot.set_ylabel('Mag')
+	ax_phot.set_xlabel('Phase')
+	ax_phot.set_xlim(-0.4,0.4)
 
+	phase_time = np.linspace(-0.5,0.5, 50000)		
+	t_zero = best_step[3-3]
+	period = best_step[4-3]
+	radius_1 = best_step[5-3]
+	k = best_step[6-3]
+	h1 = best_step[7-3]
+	h2 = best_step[8-3]
+	b = best_step[9-3]
+	zp = best_step[10-3]
+	incl = 180.*np.arccos(radius_1*b)/np.pi
+	ld_1 = htoc1_(h1,h2)
+	ld_2 = htoc2__(ld_1,h2)
+	model = zp - 2.5*np.log10( lc(phase_time, radius_1 = radius_1, k=k, incl=incl, ldc_1_1=ld_1, ldc_1_2 = ld_2, light_3=0.0)  )
+	ax_phot.plot(phase_time, model)
+
+	tdepth = np.max(model) - np.min(model)
+
+	ax_phot.set_ylim(2*tdepth,-2*tdepth)
+	ax_phot.set_title(' 2 minute RMS : {:.2f} mmag.\n30 minute RMS : {:.2f} mmag.\n transit depth : {:.2f} mmag.'.format(1000*scatter2, 1000*scatter30, 1000*tdepth))
 	
-	t_width = -1
-	if (len(sys.argv) > 2):
-		#################################################################################
-		# STEP 5 - PLOT BEST MODEL
-		#################################################################################
-		#if (len(sys.argv) > 4): alpha = 0.1# float(sys.argv[4])
-		#else : alpha = 1.
-		alpha = 0.1
+	fig_phot.subplots_adjust(left=0.04, bottom=0.085, right=0.997, top=1, wspace=0, hspace=0)
 
-		# Plot 1 min bin
-		time, mag, mag_err = np.loadtxt(sys.argv[2]).T
-		fig_phot, ax_phot = plt.subplots(figsize=(19,5))
-		ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3]), mag, c='k', alpha = alpha, s=5)
-		ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3])-1, mag, c='k', alpha = alpha, s=5)
-		scatter2 = np.std(mag)
-		
-	
-		#plot 30 minute bin
-		time, mag, mag_err = np.loadtxt(sys.argv[3]).T
-		ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3]), mag, c='r', s=5)
-		ax_phot.scatter(phaser(time, best_step[3-3], best_step[4-3])-1, mag, c='r', s=5)
-		scatter30 = np.std(mag)
-
-		ax_phot.invert_yaxis()
-		ax_phot.set_ylabel('Mag')
-		ax_phot.set_xlabel('Phase')
-		ax_phot.set_xlim(-0.4,0.4)
-
-		phase_time = np.linspace(-0.5,0.5, 50000)		
-		t_zero = best_step[3-3]
-		period = best_step[4-3]
-		radius_1 = best_step[5-3]
-		k = best_step[6-3]
-		h1 = best_step[7-3]
-		h2 = best_step[8-3]
-		b = best_step[9-3]
-		zp = best_step[10-3]
-		incl = 180.*np.arccos(radius_1*b)/np.pi
-		ld_1 = htoc1_(h1,h2)
-		ld_2 = htoc2__(ld_1,h2)
-		model = zp - 2.5*np.log10( lc(phase_time, radius_1 = radius_1, k=k, incl=incl, ldc_1_1=ld_1, ldc_1_2 = ld_2, light_3=0.0)  )
-		ax_phot.plot(phase_time, model)
-
-		tdepth = np.max(model) - np.min(model)
-
-		ax_phot.set_ylim(2*tdepth,-2*tdepth)
-		ax_phot.set_title(' 2 minute RMS : {:.2f} mmag.\n30 minute RMS : {:.2f} mmag.\n transit depth : {:.2f} mmag.'.format(1000*scatter2, 1000*scatter30, 1000*tdepth))
-		
-		fig_phot.subplots_adjust(left=0.04, bottom=0.085, right=0.997, top=1, wspace=0, hspace=0)
-
-		fig_phot.savefig('ngtsfit_best_model.png')
-		plt.close()
+	fig_phot.savefig('ngtsfit_best_model.png')
+	plt.close()
+	return tdepth
 
 
-		#################################################################################
-		# STEP 5 - ODD/EVEN FIT
-		#################################################################################
-		time, mag, mag_err = np.loadtxt(sys.argv[3]).T # LOAD 30 MIN BIN
-
-		phase_even = phaser(time, best_step[0], 2*best_step[1])
-		mask_even = (phase_even>0.15) & (phase_even<0.85)
-		time_even, mag_even, mag_err_even = np.loadtxt(sys.argv[3])[~mask_even].T # LOAD 30 MIN BIN
-		phase_even = phase_even[~mask_even]
-
-		phase_odd = phaser(time, best_step[0]+best_step[1], 2*best_step[1])
-		mask_odd = (phase_odd>0.15) & (phase_odd<0.85)
-		time_odd, mag_odd, mag_err_odd = np.loadtxt(sys.argv[3])[~mask_odd].T # LOAD 30 MIN BIN
-		phase_odd = phase_odd[~mask_odd]
-
-		fig_odd = plt.figure(figsize=(7,7))
-		ax_even = plt.subplot(221)
-		ax_odd = plt.subplot(222, sharey=ax_even)
-		ax_hist = plt.subplot(212)
-		ax_even.scatter(phase_even, mag_even, s=10, c='k', alpha=0.4)
-		ax_even.scatter(phase_even-1, mag_even, s=10, c='k', alpha=0.4)
-
-		ax_odd.scatter(phase_odd, mag_odd, s=10, c='k', alpha=0.4)
-		ax_odd.scatter(phase_odd-1, mag_odd, s=10, c='k', alpha=0.4)
 
 
-		# Now do a quick bayesian fit to radius_1 and k with everything else fixed
-		ldc_1 = htoc1_(best_step[4], best_step[5])
-		ldc_2 = htoc2__(ldc_1, best_step[5])
-		def lnlike(theta, time, mag, mag_err, return_model=False):
-			radius_1, k = theta 
-			if (radius_1 < 0) or (radius_1 > 0.5) : return -np.inf 
-			if (k < 0) or (k > 0.5) : return -np.inf 
+def odd_even(filename, lc_file1, tdepth):
 
-			incl = 180*np.arccos(best_step[6]*radius_1)/np.pi 
-			if return_model:
-				t = np.linspace(-0.15,0.15,1000)
-				return t, best_step[7]-2.5*np.log10(lc(t, 
-					t_zero = 0., period = 1.,
-					radius_1 = radius_1, k=k, 
-					incl = incl,
-					ldc_law_1=0, ldc_1_1=ldc_1, ldc_1_2=ldc_2))
+	labels3 = ['\n\nT$_0$', '\n\nP [d]', '\n\nR$_*$/a', '\n\nR$_2$/R$_*$', '\n\nh$_1$', '\n\nh$_2$', '\n\nb', '\n\n$z_p$', '\n\n$\sigma$ [mag.]']
 
-			return lc_loglike(time, mag, mag_err, zp = best_step[7], jitter = best_step[8],
-				t_zero = best_step[0], period = best_step[1],
+	tmp = np.loadtxt(sys.argv[1],  delimiter=',')
+
+	best_idx = np.argmax(tmp[:,-1])
+	best_step = tmp[best_idx][3:-1]
+
+	time, mag, mag_err = np.loadtxt(lc_file1).T # LOAD 30 MIN BIN
+
+	phase_even = phaser(time, best_step[0], 2*best_step[1])
+	mask_even = (phase_even>0.15) & (phase_even<0.85)
+	time_even, mag_even, mag_err_even = np.loadtxt(lc_file1)[~mask_even].T # LOAD 30 MIN BIN
+	phase_even = phase_even[~mask_even]
+
+	phase_odd = phaser(time, best_step[0]+best_step[1], 2*best_step[1])
+	mask_odd = (phase_odd>0.15) & (phase_odd<0.85)
+	time_odd, mag_odd, mag_err_odd = np.loadtxt(lc_file1)[~mask_odd].T # LOAD 30 MIN BIN
+	phase_odd = phase_odd[~mask_odd]
+
+	odd_frac = 100.*len(time_odd) / len(time)
+	even_frac = 100.*len(time_even) / len(time)
+
+	fig_odd = plt.figure(figsize=(7,9))
+	ax_even = plt.subplot(221)
+	ax_odd = plt.subplot(222, sharey=ax_even)
+	ax_hist = plt.subplot(212)
+	ax_even.scatter(phase_even, mag_even, s=10, c='k', alpha=0.4)
+	ax_even.scatter(phase_even-1, mag_even, s=10, c='k', alpha=0.4)
+
+	ax_odd.scatter(phase_odd, mag_odd, s=10, c='k', alpha=0.4)
+	ax_odd.scatter(phase_odd-1, mag_odd, s=10, c='k', alpha=0.4)
+
+
+	# Now do a quick bayesian fit to radius_1 and k with everything else fixed
+	ldc_1 = htoc1_(best_step[4], best_step[5])
+	ldc_2 = htoc2__(ldc_1, best_step[5])
+
+	def lnlike(theta, time, mag, mag_err, return_model=False):
+		radius_1, k = theta 
+		incl = 180*np.arccos(best_step[6]*radius_1)/np.pi 
+
+		if return_model:
+			t = np.linspace(-0.15,0.15,1000)
+			return t, best_step[7]-2.5*np.log10(lc(t, 
+				t_zero = 0., period = 1.,
 				radius_1 = radius_1, k=k, 
 				incl = incl,
-				ldc_law_1=0, ldc_1_1=ldc_1, ldc_1_2=ldc_2)
-				
-		ndim = 2 
-		nwalkers = 50
-		nsteps = 2000
-		theta = [best_step[2], best_step[3]]
-		p0 = np.array([np.random.normal(theta, 1e-6).tolist() for i in range(nwalkers)]) 
+				ldc_law_1=0, ldc_1_1=ldc_1, ldc_1_2=ldc_2))
 
-		sampler_even = emcee.EnsembleSampler(nwalkers, ndim, lnlike, args=[time_even, mag_even, mag_err_even])
-		sampler_even.run_mcmc(p0, nsteps, progress=False)
-
-		flat_samples_even = sampler_even.get_chain(flat=True, discard=1000)
-		fig_corner_even = corner.corner(flat_samples_even, labels = labels3[2:4])
-		fig_corner_even.subplots_adjust(left=0.16, bottom=0.22, right=0.997, top=1, wspace=0, hspace=0)
-		fig_corner_even.savefig('ngtsfit_corner_even_transits.png')
-		plt.close(fig_corner_even)
-
-		best_even = sampler_even.get_chain(flat=True)[np.argmax(sampler_even.get_log_prob(flat=True))]
-		_p_even, lc_even = lnlike(best_even, time_even, mag_even, mag_err_even, return_model=True)
-		ax_even.plot(_p_even, lc_even, 'g')
-
-		sampler_odd = emcee.EnsembleSampler(nwalkers, ndim, lnlike, args=[time_odd, mag_odd, mag_err_odd])
-		sampler_odd.run_mcmc(p0, nsteps, progress=False)
-
-		flat_samples_odd = sampler_odd.get_chain(flat=True, discard=1000)
-		fig_corner_odd = corner.corner(flat_samples_odd, labels = labels3[2:4])
-		fig_corner_odd.subplots_adjust(left=0.16, bottom=0.22, right=0.997, top=1, wspace=0, hspace=0)
-		fig_corner_odd.savefig('ngtsfit_corner_odd_transits.png')
-		plt.close(fig_corner_odd)
-
-		best_odd = sampler_odd.get_chain(flat=True)[np.argmax(sampler_odd.get_log_prob(flat=True))]
-		_p_odd, lc_odd = lnlike(best_odd, time_odd, mag_odd, mag_err_odd, return_model=True)
-		ax_odd.plot(_p_odd, lc_odd, 'r')
-
-		ax_odd.axhline(np.max(lc_even), c='g', ls='--', alpha = 0.5)
-		ax_odd.axhline(np.max(lc_odd), c='r', ls='--', alpha = 0.5)
-		ax_even.axhline(np.max(lc_even), c='g', ls='--', alpha = 0.5)
-		ax_even.axhline(np.max(lc_odd), c='r', ls='--', alpha = 0.5)
+		if (radius_1 < 0) or (radius_1 > 0.5) : return -np.inf 
+		if (k < 0) or (k > 0.5) : return -np.inf 
 
 
-		ax_even.set_xlim(-0.15,0.15)
-		ax_odd.set_xlim(-0.15,0.15)
-		#ax_odd.xaxis.set_major_locator(plt.NullLocator())
-		#ax_odd.yaxis.set_major_locator(plt.NullLocator())
 
-		ax_even.set_ylabel('Mag')
-		ax_even.set_title('Even transit depth {:.2f} mmag'.format(1e3*np.max(lc_even)))
-		ax_odd.set_title('Odd transit depth  {:.2f} mmag'.format(1e3*np.max(lc_odd)))
-		fig_odd.suptitle('Difference of {:.2f} mmag [{:.2f} %]'.format(1e3*abs( np.max(lc_even) - np.max(lc_odd) ),  100*abs( np.max(lc_even) - np.max(lc_odd) ) / tdepth), fontsize=16)
-		ax_even.invert_yaxis()
+		return lc_loglike(time, mag, mag_err, zp = best_step[7], jitter = best_step[8],
+			t_zero = best_step[0], period = best_step[1],
+			radius_1 = radius_1, k=k, 
+			incl = incl,
+			ldc_law_1=0, ldc_1_1=ldc_1, ldc_1_2=ldc_2)
+			
+	ndim = 2 
+	nwalkers = 50
+	nsteps = 2000
+	theta = [best_step[2], best_step[3]]
+	p0 = np.array([np.random.normal(theta, 1e-6).tolist() for i in range(nwalkers)]) 
 
+	sampler_even = emcee.EnsembleSampler(nwalkers, ndim, lnlike, args=[time_even, mag_even, mag_err_even])
+	sampler_even.run_mcmc(p0, nsteps, progress=False)
 
-		ax_hist.hist(sampler_odd.get_chain(flat=True, discard=1000)[:,1], 100, histtype='step',  fill=False, color='r', label=None)
-		ax_hist.hist(sampler_even.get_chain(flat=True, discard=1000)[:,1], 100, histtype='step', fill=False, color='g',label=None)
-		ax_hist.axvline(best_even[1], c='g', ls='--', alpha = 0.5, label='k = {:.3f}'.format(best_even[1]))
-		ax_hist.axvline(best_odd[1], c='r', ls='--', alpha = 0.5, label='k = {:.3f}'.format(best_odd[1]))
-		ax_hist.set_xlabel(r'$R_2$/$R_\star$')
-		ax_hist.set_ylabel(r'Number of samples')
-		ax_hist.legend()
-		fig_odd.align_ylabels([ax_even, ax_hist])
+	flat_samples_even = sampler_even.get_chain(flat=True, discard=1000)
+	fig_corner_even = corner.corner(flat_samples_even, labels = labels3[2:4])
+	fig_corner_even.subplots_adjust(left=0.16, bottom=0.22, right=0.997, top=1, wspace=0, hspace=0)
+	fig_corner_even.savefig('ngtsfit_corner_even_transits.png')
+	plt.close(fig_corner_even)
 
-		fig_odd.subplots_adjust(left=0.11, bottom=0.07, right=0.99, top=0.9, wspace=0.2, hspace=0.1)
-		fig_odd.savefig('ngtsfit_odd_even.png')
+	best_even = sampler_even.get_chain(flat=True)[np.argmax(sampler_even.get_log_prob(flat=True))]
+	_p_even, lc_even = lnlike(best_even, time_even, mag_even, mag_err_even, return_model=True)
+	ax_even.plot(_p_even, lc_even, 'g')
 
-		plt.close()
+	sampler_odd = emcee.EnsembleSampler(nwalkers, ndim, lnlike, args=[time_odd, mag_odd, mag_err_odd])
+	sampler_odd.run_mcmc(p0, nsteps, progress=False)
 
-		print('---------------------------------------------------------------------------------------')
-		print('-                            Odd and even transits                                    -')
-		print('---------------------------------------------------------------------------------------')
-		print('Even transit depth {:.2f} mmag'.format(1e3*np.max(lc_even)))
-		print('Odd transit depth  {:.2f} mmag'.format(1e3*np.max(lc_odd)))
-		print('Difference         {:.2f} mmag [{:.2f} %]'.format(1e3*abs( np.max(lc_even) - np.max(lc_odd) ),  100*abs( np.max(lc_even) - np.max(lc_odd) ) / tdepth)) 
-		print('---------------------------------------------------------------------------------------')
+	flat_samples_odd = sampler_odd.get_chain(flat=True, discard=1000)
+	fig_corner_odd = corner.corner(flat_samples_odd, labels = labels3[2:4])
+	fig_corner_odd.subplots_adjust(left=0.16, bottom=0.22, right=0.997, top=1, wspace=0, hspace=0)
+	fig_corner_odd.savefig('ngtsfit_corner_odd_transits.png')
+	plt.close(fig_corner_odd)
 
-	
-	# Now plot other things
-	if len(sys.argv) > 4:
-		print('Looking up star in Gaia...')
+	best_odd = sampler_odd.get_chain(flat=True)[np.argmax(sampler_odd.get_log_prob(flat=True))]
+	_p_odd, lc_odd = lnlike(best_odd, time_odd, mag_odd, mag_err_odd, return_model=True)
+	ax_odd.plot(_p_odd, lc_odd, 'r')
 
-
-		coord = SkyCoord(ra=float(sys.argv[4]), dec=float(sys.argv[5]), unit=(u.degree, u.degree), frame='icrs')
-		width = u.Quantity(0.1, u.deg)
-		height = u.Quantity(0.1, u.deg)
-		r = Gaia.query_object_async(coordinate=coord, width=width, height=height)
-		stellar_radius = r['radius_val'][0]
-		planet_radius = stellar_radius*best_step[3]
-		low_err_r = low_err[3]*planet_radius
-		high_err_r = high_err[3]*planet_radius
-
-		print('Stellar radius = {:.5f} R_sun'.format(stellar_radius))
-		print('Planet radius  = {:.5f} + {:.5f} - {:.5f} R_Sun'.format(planet_radius, high_err_r, low_err_r) )
-		print('               = {:.5f} + {:.5f} - {:.5f} R_Jup'.format(planet_radius/R_jup_R_sun, high_err_r/R_jup_R_sun, low_err_r/R_jup_R_sun) )
-		print('---------------------------------------------------------------------------------------')
-
-		f4, ax4 = plt.subplots(figsize = (10,7))
-		plt.loglog(exodata['orbital_period'], exodata['radius'], 'ko', alpha = 0.3, markersize=2, label='http://exoplanet.eu/')
-		ax4.set_xlabel('Orbital Period (day)')
-		ax4.set_ylabel(r'Planetary Radius (R$_{\rm Jup}$)')
-		plt.errorbar(best_step[1], planet_radius/R_jup_R_sun, yerr = high_err_r/R_jup_R_sun, color='red', fmt='.', markersize='10', ecolor='red',capsize=4, elinewidth=2, label=None)
-		f4.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
-		plt.axhline(1.0, linestyle = '--', color = 'r', alpha = 0.6, label = 'Jupiter')
-		plt.axhline(0.3444, linestyle = '--', color = 'b', alpha = 0.6, label = 'Neptune')
-		plt.axhline(0.08921, linestyle = '--', color = 'g', alpha = 0.6, label = 'Earth')
-		plt.legend()
-		f4.savefig('ngtsfit_radius_period.png')
+	ax_odd.axhline(np.max(lc_even), c='g', ls='--', alpha = 0.5)
+	ax_odd.axhline(np.max(lc_odd), c='r', ls='--', alpha = 0.5)
+	ax_even.axhline(np.max(lc_even), c='g', ls='--', alpha = 0.5)
+	ax_even.axhline(np.max(lc_odd), c='r', ls='--', alpha = 0.5)
 
 
-		f5, ax5 = plt.subplots(figsize = (10,7))
-		plt.loglog(exodata['semi_major_axis'], exodata['star_radius'], 'ko', alpha = 0.3, markersize=2)
-		plt.plot(stellar_radius / best_step[2] / 215.032, stellar_radius, 'ro', markersize='10')
-		ax5.set_xlabel('Semi-major axis (au)')
-		ax5.set_ylabel(r'Host star Radius (R$_{\rm Sun}$)')
-		f5.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
-		f5.savefig('ngtsfit_host_seperation.png')
-	
+	ax_even.set_xlim(-0.15,0.15)
+	ax_odd.set_xlim(-0.15,0.15)
+	#ax_odd.xaxis.set_major_locator(plt.NullLocator())
+	#ax_odd.yaxis.set_major_locator(plt.NullLocator())
+
+	ax_even.set_ylabel('Mag')
+	ax_even.set_title('Even transit depth {:.2f} mmag\n[{:.2f}% of data]'.format(1e3*np.max(lc_even), even_frac))
+	ax_odd.set_title('Odd transit depth  {:.2f} mmag\n[{:.2f}% of data]'.format(1e3*np.max(lc_odd), odd_frac))
+	fig_odd.suptitle('Difference of {:.2f} mmag [{:.2f} %]'.format(1e3*abs( np.max(lc_even) - np.max(lc_odd) ),  100*abs( np.max(lc_even) - np.max(lc_odd) ) / tdepth), fontsize=16)
+	ax_even.invert_yaxis()
+
+
+	ax_hist.hist(sampler_odd.get_chain(flat=True, discard=1000)[:,1], 100, histtype='step',  fill=False, color='r', label=None)
+	ax_hist.hist(sampler_even.get_chain(flat=True, discard=1000)[:,1], 100, histtype='step', fill=False, color='g',label=None)
+	ax_hist.axvline(best_even[1], c='g', ls='--', alpha = 0.5, label='k = {:.3f}'.format(best_even[1]))
+	ax_hist.axvline(best_odd[1], c='r', ls='--', alpha = 0.5, label='k = {:.3f}'.format(best_odd[1]))
+	ax_hist.set_xlabel(r'$R_2$/$R_\star$')
+	ax_hist.set_ylabel(r'Number of samples')
+	ax_hist.legend()
+	fig_odd.align_ylabels([ax_even, ax_hist])
+
+	fig_odd.subplots_adjust(left=0.12, bottom=0.07, right=0.99, top=0.9, wspace=0.2, hspace=0.1)
+	fig_odd.savefig('ngtsfit_odd_even.png')
+
 	plt.close()
+
+	print('---------------------------------------------------------------------------------------')
+	print('-                            Odd and even transits                                    -')
+	print('---------------------------------------------------------------------------------------')
+	print('Even transit depth {:.2f} mmag'.format(1e3*np.max(lc_even)))
+	print('Odd transit depth  {:.2f} mmag'.format(1e3*np.max(lc_odd)))
+	print('Difference         {:.2f} mmag [{:.2f} %]'.format(1e3*abs( np.max(lc_even) - np.max(lc_odd) ),  100*abs( np.max(lc_even) - np.max(lc_odd) ) / tdepth)) 
+	print('---------------------------------------------------------------------------------------')
+
+
+
+
+def Gaia_lookup(filename, ra,dec):
+	tmp = np.loadtxt(sys.argv[1],  delimiter=',')
+	best_idx = np.argmax(tmp[:,-1])
+	best_step = tmp[best_idx][3:-1]
+	median_step = np.median(tmp, axis=0)[3:-1]
+	low_err = median_step - np.percentile(tmp, 16, axis=0)[3:-1]
+	high_err = np.percentile(tmp, 84, axis=0)[3:-1] - median_step
+
+	print('Looking up star in Gaia... ', end='')
+
+	coord = SkyCoord(ra=ra, dec=dec, unit=(u.degree, u.degree), frame='icrs')
+	width = u.Quantity(0.1, u.deg)
+	height = u.Quantity(0.1, u.deg)
+	r = Gaia.query_object_async(coordinate=coord, width=width, height=height)
+	stellar_radius = r['radius_val'][0]
+	planet_radius = stellar_radius*best_step[3]
+	low_err_r = low_err[3]*planet_radius
+	high_err_r = high_err[3]*planet_radius
+
+	print('Stellar radius = {:.5f} R_sun'.format(stellar_radius))
+	print('Planet radius  = {:.5f} + {:.5f} - {:.5f} R_Sun'.format(planet_radius, high_err_r, low_err_r) )
+	print('               = {:.5f} + {:.5f} - {:.5f} R_Jup'.format(planet_radius/R_jup_R_sun, high_err_r/R_jup_R_sun, low_err_r/R_jup_R_sun) )
+	print('---------------------------------------------------------------------------------------')
+
+	f4, ax4 = plt.subplots(figsize = (10,7))
+	plt.loglog(exodata['orbital_period'], exodata['radius'], 'ko', alpha = 0.3, markersize=2, label='http://exoplanet.eu/')
+	ax4.set_xlabel('Orbital Period (day)')
+	ax4.set_ylabel(r'Planetary Radius (R$_{\rm Jup}$)')
+	plt.errorbar(best_step[1], planet_radius/R_jup_R_sun, yerr = high_err_r/R_jup_R_sun, color='red', fmt='.', markersize='10', ecolor='red',capsize=4, elinewidth=2, label=None)
+	f4.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
+	plt.axhline(1.0, linestyle = '--', color = 'r', alpha = 0.6, label = 'Jupiter')
+	plt.axhline(0.3444, linestyle = '--', color = 'b', alpha = 0.6, label = 'Neptune')
+	plt.axhline(0.08921, linestyle = '--', color = 'g', alpha = 0.6, label = 'Earth')
+	plt.legend()
+	f4.savefig('ngtsfit_radius_period.png')
+
+
+	f5, ax5 = plt.subplots(figsize = (10,7))
+	plt.loglog(exodata['semi_major_axis'], exodata['star_radius'], 'ko', alpha = 0.3, markersize=2)
+	plt.plot(stellar_radius / best_step[2] / 215.032, stellar_radius, 'ro', markersize='10')
+	ax5.set_xlabel('Semi-major axis (au)')
+	ax5.set_ylabel(r'Host star Radius (R$_{\rm Sun}$)')
+	f5.subplots_adjust(left=0.07, bottom=0.075, right=0.997, top=1, wspace=0, hspace=0)
+	f5.savefig('ngtsfit_host_seperation.png')
+	plt.close()
+
+
+if __name__ =="__main__":
+	if (len(sys.argv) < 2) : raise ValueError('No filename specified.')
+
+	
+	#################################################################################
+	# STEP 1 - REPORT THE PARAMETERS AND 1-SIGMA UNCERTAINTY
+	#################################################################################
+	report_parameters(sys.argv[1])
+	
+	
+	#################################################################################
+	# STEP 2 - CREATE THE CORNER FOR FITTED PARAMETERS
+	#################################################################################
+	corner_calculated_parameters(sys.argv[1])
+
+	#################################################################################
+	# STEP 3 - CREATE THE CORNER FOR CALCUALTED PARAMETERS
+	#################################################################################
+	corner_fitted_parameters(sys.argv[1])
+	
+	
+	#################################################################################
+	# STEP 4 - PLOT BEST MODEL
+	#################################################################################	
+	tdepth = plot_best_model(sys.argv[1], sys.argv[2], sys.argv[3])
+	
+
+	#################################################################################
+	# STEP 5 - ODD/EVEN FIT
+	#################################################################################
+	odd_even(sys.argv[1], sys.argv[3], tdepth)
+	
+	#################################################################################
+	# STEP 6 - Gaia look-up
+	#################################################################################
+	if len(sys.argv) > 4:
+		Gaia_lookup(sys.argv[1], float(sys.argv[4]), float(sys.argv[5]))

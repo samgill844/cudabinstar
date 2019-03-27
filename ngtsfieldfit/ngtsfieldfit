@@ -117,10 +117,11 @@ complete = 0
 if __name__ == '__main__':
 
     # Load the fits file
-    h = fits.open(sys.argv[1])
+    home = '/home/u1870241/field_fits'
+    fits_path = '/home/u1870241/1807_DC_fits/'
+    h = fits.open(fits_path + sys.argv[1])
     prod_id = str(h[0].header['PROD_ID'])
     obj_ids = np.unique(h[4].data["OBJ_ID"])  
-    home = '/home/sam/Software/cudabinstar/ngtsfieldfit'
     info = h[4]
     
     # Ask What we want to do?
@@ -139,6 +140,7 @@ if __name__ == '__main__':
 
         # Now create the product ID folder
         # Run this on single thread since it's quick
+        os.chdir(home)
         os.system('mkdir -p {:}'.format(prod_id))
 
         # Now we need to get a list of independent object IDs
