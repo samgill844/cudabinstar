@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     if switch_number==0:
         # Now define a couple of paths 
-        print('Processing {:} [product ID {:}]'.format(h[0].header['FIELD'] +'_' +  h[0].header['TAG'], prod_id))
+        #print('Processing {:} [product ID {:}]'.format(h[0].header['FIELD'] +'_' +  h[0].header['TAG'], prod_id))
 
         # Now create the product ID folder
         # Run this on single thread since it's quick
@@ -144,9 +144,9 @@ if __name__ == '__main__':
         os.system('mkdir -p {:}'.format(prod_id))
 
         # Now we need to get a list of independent object IDs
-        print('\tCreating file structure... ', end=''); sys.stdout.flush()
+        #print('\tCreating file structure... ', end=''); sys.stdout.flush()
         for i in range(len(obj_ids))[:5] : os.system('mkdir -p {:}/{:}'.format(prod_id, obj_ids[i]))
-        print('done.')
+        #print('done.')
 
 
     
