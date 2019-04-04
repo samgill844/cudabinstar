@@ -13,8 +13,18 @@ from astropy.coordinates import SkyCoord
 from astroquery.gaia import Gaia
 from matplotlib.patches import Rectangle
 from cudabinstar import lc, lc_loglike
-from gpuastro.binarystar.qpower2 import htoc1_, htoc2__
+#from gpuastro.binarystar.qpower2 import htoc1_, htoc2__
 import emcee
+
+def htoc1_(h1, h2) : return 1 - h1 + h2
+
+
+def htoc2__(c1, h2):
+	x = c1 / h2
+	return ((x-1) - (x-1)**2 /2 + (x-1)**3/3) / math.log(2.)
+
+
+
 np.warnings.filterwarnings('ignore')
 
 G = constants.G.value
