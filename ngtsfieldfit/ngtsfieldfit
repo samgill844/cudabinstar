@@ -145,7 +145,7 @@ if __name__ == '__main__':
 
         # Now we need to get a list of independent object IDs
         #print('\tCreating file structure... ', end=''); sys.stdout.flush()
-        for i in range(len(obj_ids))[:5] : os.system('mkdir -p {:}/{:}'.format(prod_id, obj_ids[i]))
+        for i in range(len(obj_ids))[:] : os.system('mkdir -p {:}/{:}'.format(prod_id, obj_ids[i]))
         #print('done.')
 
 
@@ -154,13 +154,13 @@ if __name__ == '__main__':
     if switch_number==1:
         lightcurves = h[5]
         writing_pool = Pool(NPROC)
-        writing_pool.map(write_lightcurves, range(len(obj_ids))[:5])
+        writing_pool.map(write_lightcurves, range(len(obj_ids))[:])
         writing_pool.close()
         writing_pool.join()
 
     if switch_number==2:
         binning_pool = Pool(NPROC)
-        binning_pool.map(bin_lightcurves, range(len(obj_ids))[:5])
+        binning_pool.map(bin_lightcurves, range(len(obj_ids))[:])
         binning_pool.close()
         binning_pool.join()
     '''
