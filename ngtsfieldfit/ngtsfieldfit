@@ -66,7 +66,7 @@ def fit_lightcurve(i):
         time.sleep(1)
 
     # Make the fitting call 
-    os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --nsteps 10000 --burn_in 5000 --walkers 100 --output chain_{:}.dat'.format(epoch,period, radius_1, k, PEAK))
+    os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --nsteps 10000 --burn_in 5000 --walkers 100 --output chain_peak_{:}.dat'.format(epoch,period, radius_1, k, PEAK))
 
 def corner_lightcurve(i):
 
@@ -163,14 +163,17 @@ if __name__ == '__main__':
         binning_pool.map(bin_lightcurves, range(len(obj_ids))[:])
         binning_pool.close()
         binning_pool.join()
+
+
+    if switch_number==3:
+        fitting_pool = Pool(1)
+        fitting_pool.map(fit_lightcurve, range(len(obj_ids))[:1])
+        fitting_pool.close()
+        fitting_pool.join()    
+        
     '''
     print('\tCreating lightcurve files... '); sys.stdout.flush()
-    binning_pool = Pool(10)
-    fitting_pool = Pool(10)
     corner_pool = Pool(10)
-
-    binning_pool.map_async(bin_lightcurves, range(len(obj_ids))[:])
-    fitting_pool.map_async(fit_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])                             
     corner_pool.map_async(corner_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])
 
     print('\tProgress:')
