@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
     # Load the fits file
     home = '/ngts/scratch/ngtsfit'
-    fits_path = '/home/u1870241/1807_DC_fits/'
+    fits_path = '/ngts/scratch/ngtsfit/1807_DC_fits/'
     h = fits.open(fits_path + sys.argv[1])
     prod_id = str(h[0].header['PROD_ID'])
     obj_ids = np.unique(h[4].data["OBJ_ID"])  
