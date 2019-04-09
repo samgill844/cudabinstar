@@ -117,7 +117,7 @@ complete = 0
 if __name__ == '__main__':
 
     # Load the fits file
-    home = '/home/u1870241/field_fits'
+    home = '/ngts/scratch/ngtsfit'
     fits_path = '/home/u1870241/1807_DC_fits/'
     h = fits.open(fits_path + sys.argv[1])
     prod_id = str(h[0].header['PROD_ID'])
