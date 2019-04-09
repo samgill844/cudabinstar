@@ -59,11 +59,11 @@ def fit_lightcurve(i):
     PEAK =info.data[i]["RANK"]
 
     # Now check if fit has been done
-    if os.path.exists('chain_{:}.dat'.format(PEAK)): return  
+    if os.path.exists('chain_peak_{:}.dat'.format(PEAK)): return  
 
     # Now wait for the lightcurve
-    while not os.path.exists('30_min_lc.dat'):
-        time.sleep(1)
+    #while not os.path.exists('30_min_lc.dat'):
+    #    time.sleep(1)
 
     # Make the fitting call 
     os.system('ngtsfit --filename 30_min_lc.dat --t_zero {:.6f} --period {:.6f} --radius_1 {:.3f} --k {:.3f} --nsteps 10000 --burn_in 5000 --walkers 100 --output chain_peak_{:}.dat'.format(epoch,period, radius_1, k, PEAK))
@@ -127,8 +127,9 @@ if __name__ == '__main__':
     # Ask What we want to do?
     # 0 screate the file structure
     # 1 Creat the lightcurve files
-    # 2 Fit the lightcurves using ngtsfit
-    # 3 Render the plots
+    # 2 bin the lightcurves
+    # 3 Fit the lightcurves using ngtsfit
+    # 4 Render the plots
     switch_number = int(sys.argv[2])
 
     # Number of processes
