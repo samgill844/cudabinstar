@@ -93,13 +93,13 @@ def corner_lightcurve(i):
     os.system('mkdir -p peak_{:}'.format(PEAK))
     os.chdir('peak_{:}'.format(PEAK))
 
-    try:
-        # Now look up RA and DEC from OBJID 
-        idx = np.where(OIdata['col1']==int(obj_id))[0][0] 
-        print(idx, OIdata['col2'][idx], OIdata['col3'][idx])
-        # Now make the plotting call, pipeing it to ngtslog and background since
-        # it wont be as long as the fit (hopefully).
-        os.system('ngtscorner ../chain_peak_{:}.dat ../2_min_lc.dat ../30_min_lc.dat {:.6f} {:.6f} > ngtsfit.log'.format(PEAK, OIdata['col2'][idx], OIdata['col3'][idx]))
+
+    # Now look up RA and DEC from OBJID 
+    idx = np.where(OIdata['col1']==int(obj_id))[0][0] 
+    print(idx, OIdata['col2'][idx], OIdata['col3'][idx])
+    # Now make the plotting call, pipeing it to ngtslog and background since
+    # it wont be as long as the fit (hopefully).
+    os.system('ngtscorner ../chain_peak_{:}.dat ../2_min_lc.dat ../30_min_lc.dat {:.6f} {:.6f} > ngtsfit.log'.format(PEAK, OIdata['col2'][idx], OIdata['col3'][idx]))
 
     #global complete
     #complete += 1
