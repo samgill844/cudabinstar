@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
     if switch_number==4:
         corner_pool = Pool(NPROC)
-        corner_pool.map(corner_lightcurve, range(len(obj_ids))[:1])
+        corner_pool.map(corner_lightcurve, range(len(obj_ids))[:3])
         corner_pool.close()
         corner_pool.join()     
     '''
