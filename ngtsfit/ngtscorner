@@ -345,7 +345,7 @@ def odd_even(filename, lc_file1, tdepth):
 	p0 = np.array([np.random.normal(theta, 1e-6).tolist() for i in range(nwalkers)]) 
 
 	sampler_even = emcee.EnsembleSampler(nwalkers, ndim, lnlike, args=[time_even, mag_even, mag_err_even])
-	sampler_even.run_mcmc(p0, nsteps)
+	sampler_even.run_mcmc(p0, nsteps, progress=False)
 
 	flat_samples_even = sampler_even.get_chain(flat=True, discard=1000)
 	fig_corner_even = corner.corner(flat_samples_even, labels = labels3[2:4])
@@ -358,7 +358,7 @@ def odd_even(filename, lc_file1, tdepth):
 	ax_even.plot(_p_even, lc_even, 'g')
 
 	sampler_odd = emcee.EnsembleSampler(nwalkers, ndim, lnlike, args=[time_odd, mag_odd, mag_err_odd])
-	sampler_odd.run_mcmc(p0, nsteps)
+	sampler_odd.run_mcmc(p0, nsteps, progress=False)
 
 	flat_samples_odd = sampler_odd.get_chain(flat=True, discard=1000)
 	fig_corner_odd = corner.corner(flat_samples_odd, labels = labels3[2:4])
