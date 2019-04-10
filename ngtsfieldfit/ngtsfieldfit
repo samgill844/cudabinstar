@@ -82,8 +82,8 @@ def corner_lightcurve(i):
 
 
     # Now wait for the lightcurve
-    while not os.path.exists('../chain_{:}.dat'.format(PEAK)):
-        time.sleep(1)
+    #while not os.path.exists('../chain_{:}.dat'.format(PEAK)):
+    #    time.sleep(1)
 
     # Now make and change to tmp directory to avoid thread races
     os.system('mkdir -p peak_{:}'.format(PEAK))
@@ -172,6 +172,12 @@ if __name__ == '__main__':
         fitting_pool.close()
         fitting_pool.join()    
         
+
+    if switch_number==4:
+        corner_pool = Pool(NPROC)
+        corner_pool.map(corner_lightcurve, range(len(obj_ids))[:1])
+        corner_pool.close()
+        corner_pool.join()     
     '''
     print('\tCreating lightcurve files... '); sys.stdout.flush()
     corner_pool = Pool(10)
