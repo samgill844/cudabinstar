@@ -3,4 +3,5 @@
 
 
 install : 
-	cp ngtsfieldfit ~/bin
+	cp ngtsfieldfit ~/bin 
+	cp OID.dat ~/bin
