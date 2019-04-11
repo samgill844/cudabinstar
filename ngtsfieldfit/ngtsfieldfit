@@ -177,14 +177,14 @@ if __name__ == '__main__':
 
     if switch_number==3:
         fitting_pool = Pool(NPROC)
-        fitting_pool.map(fit_lightcurve, range(len(obj_ids))[:])
+        fitting_pool.map(fit_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])
         fitting_pool.close()
         fitting_pool.join()    
         
 
     if switch_number==4:
         corner_pool = Pool(NPROC)
-        corner_pool.map(corner_lightcurve, range(len(obj_ids))[:])
+        corner_pool.map(corner_lightcurve, range(len(h[4].data["OBJ_ID"]))[:])
         corner_pool.close()
         corner_pool.join()     
     '''
