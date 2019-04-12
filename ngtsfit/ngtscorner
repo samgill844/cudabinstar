@@ -467,33 +467,43 @@ if __name__ =="__main__":
 	#################################################################################
 	# STEP 1 - REPORT THE PARAMETERS AND 1-SIGMA UNCERTAINTY
 	#################################################################################
-	report_parameters(sys.argv[1])
-	
+	try:
+		report_parameters(sys.argv[1])
+	except:
+		pass
 	
 	#################################################################################
 	# STEP 2 - CREATE THE CORNER FOR FITTED PARAMETERS
 	#################################################################################
-	corner_calculated_parameters(sys.argv[1])
-
+	try: 
+		corner_calculated_parameters(sys.argv[1])
+	except:
+		pass
 	#################################################################################
 	# STEP 3 - CREATE THE CORNER FOR CALCUALTED PARAMETERS
 	#################################################################################
-	corner_fitted_parameters(sys.argv[1])
-	
+	try:
+		corner_fitted_parameters(sys.argv[1])
+	except:
+		pass
 	
 	#################################################################################
 	# STEP 4 - PLOT BEST MODEL
 	#################################################################################	
-	tdepth = plot_best_model(sys.argv[1], sys.argv[2], sys.argv[3])
-	
+	try:
+		tdepth = plot_best_model(sys.argv[1], sys.argv[2], sys.argv[3])
 
-	#################################################################################
-	# STEP 5 - ODD/EVEN FIT
-	#################################################################################
-	odd_even(sys.argv[1], sys.argv[3], tdepth)
-	
+		#################################################################################
+		# STEP 5 - ODD/EVEN FIT
+		#################################################################################
+		odd_even(sys.argv[1], sys.argv[3], tdepth)
+	except:
+		pass 
+
 	#################################################################################
 	# STEP 6 - Gaia look-up
 	#################################################################################
-	if len(sys.argv) > 4:
-		Gaia_lookup(sys.argv[1], float(sys.argv[4]), float(sys.argv[5]))
+	try:
+		if len(sys.argv) > 4:
+			Gaia_lookup(sys.argv[1], float(sys.argv[4]), float(sys.argv[5]))
+	except: pass
