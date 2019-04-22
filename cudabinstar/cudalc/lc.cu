@@ -4,19 +4,22 @@
 
 #include "kepler.h"
 #include "flux_drop.h"
-
+#include "ellipsoidal.h"
 
 
 extern "C" {__host__ __device__ void lc(const double * time, double * LC,
                         double t_zero, double period,
                         double radius_1, double k ,
-                        double fs, double fc, 
+                        double fs, double fc, double q,
                         double incl,
-                        int ld_law_1, double ldc_1_1, double ldc_1_2, 
+                        int ld_law_1, double ldc_1_1, double ldc_1_2, double gdc_1,
                         double SBR, double light_3,
                         int Accurate_t_ecl, double t_ecl_tolerance, int Accurate_Eccentric_Anomaly, double E_tol,
                         int N_LC )
 {
+    // Still do do 
+    // Accoutn for difference in primary transit depth from SBR
+    // Solve for linear limb-darkening coeff from limb-darkening law (maybe function pointers if supported?)
     int i;
     double nu, z, l, f;
 
@@ -24,20 +27,12 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
     double e = fs*fs + fc*fc;
     double w  = atan2(fs, fc);
     incl = M_PI*incl/180.;
-    double phase;
-    double cut = radius_1*sqrt(pow(1 + k,2) + pow(cos(incl)/radius_1,2)) / M_PI;
+
+    // Individual fluxes 
+    double F_transit, F_ellipsoidal, F_spots;
+    double u = 0.6;
     for (i=0; i < N_LC; i++)
     {
-        // Make first check
-        
-        phase =  (time[i] - t_zero) / period -  floor((time[i] - t_zero) /period);
-        phase = phase > 0.5 ? -phase + 1. : phase;
-        if (phase > cut & e==0 & SBR==0)
-        {
-            LC[i] = 1;
-            continue;
-        }
-
         // Get the true anomaly
         nu = getTrueAnomaly(time[i], e, w, period, t_zero, incl, radius_1, t_ecl_tolerance, Accurate_t_ecl,  Accurate_Eccentric_Anomaly, E_tol );
 
@@ -45,7 +40,22 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
         z = get_z(nu, e, incl, w, radius_1);
 
         // Initialse the flux
+        // The model we will use is:
+        //   F_tot = F_ellipsoidal + F_spots + F_transit 
+        //   F_ellipsoidal -> ellipsoidal effect contralled by the mass ratio, q and the gravity limb-darkening coefficient
+        //   F_spots -> flux drop from spots controlled by the eker model
+        //   F_transit -> flux from the desired transit model (using 1 as the continuum)
         l = 1.;
+        F_transit=1;
+        F_ellipsoidal=0;
+        F_spots=0;
+
+        // Check for eelipsoidal variation and apply it if needed
+        if (q>0) F_ellipsoidal = Fellipsoidal(nu, q, radius_1, incl, u, gdc_1);
+
+
+
+        
 
         // Check distance between them to see if its transiting
         if (z < (1.0+ k))
@@ -55,15 +65,17 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
 
             if (f > 0)
             {
-                if (ld_law_1==0) l = Flux_drop_analytical_power_2(z, k, ldc_1_1, ldc_1_2, l, 1E-8);
-                if (ld_law_1==1) l = Flux_drop_analytical_quadratic(z, k, ldc_1_1, ldc_1_2, 1E-8);
+                if (ld_law_1==0) F_transit = Flux_drop_analytical_power_2(z, k, ldc_1_1, ldc_1_2, l, 1E-8);
+                if (ld_law_1==1) F_transit = Flux_drop_analytical_quadratic(z, k, ldc_1_1, ldc_1_2, 1E-8);
             }
-            else if (SBR>0.) l =  Flux_drop_analytical_uniform(z, k, SBR, l); // Secondary eclipse
-
-            // Don't forget to account for third light
-            if (light_3 > 0.0)  l = l/(1. + light_3) + (1.-1.0/(1. + light_3));
+            else if (SBR>0.) F_transit =  Flux_drop_analytical_uniform(z, k, SBR, l); // Secondary eclipse
         }
-        LC[i] = l;
+
+        // Create the total lightcurve 
+        LC[i] = F_transit + F_spots + F_ellipsoidal;
+
+        // Don't forget to account for third light
+        if (light_3 > 0.0)  LC[i] = LC[i]/(1. + light_3) + (1.-1.0/(1. + light_3));
     }
 }}
 

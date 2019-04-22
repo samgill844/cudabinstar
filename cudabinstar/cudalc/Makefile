@@ -4,8 +4,8 @@ COMPILER_FLAGS = -O3 -Xcompiler -fpic -rdc=true --default-stream per-thread -Xpt
 
 all : kepler.o rv.o flux_drop.o lc.o 
 
-lc.o : lc.cu flux_drop.o kepler.o
-	${cc} ${COMPILER_FLAGS} lc.cu flux_drop.o kepler.o -dc
+lc.o : lc.cu flux_drop.o kepler.o ellipsoidal.o
+	${cc} ${COMPILER_FLAGS} lc.cu flux_drop.o kepler.o ellipsoidal.o -dc
 
 flux_drop.o : flux_drop.cu
 	${cc} ${COMPILER_FLAGS} flux_drop.cu -dc
@@ -15,6 +15,9 @@ rv.o : rv.cu kepler.o
 
 kepler.o : kepler.cu
 	${cc} ${COMPILER_FLAGS} kepler.cu -dc
+
+ellipsoidal.o : ellipsoidal.cu 
+	${cc} ${COMPILER_FLAGS} ellipsoidal.cu -dc
 
 clean:
 	rm *.o

@@ -82,7 +82,7 @@ def corner_lightcurve(i):
     PEAK =info.data[i]["RANK"]
 
     # Check for skip
-    if os.path.exists('ngtsfit_{:}.html'.format(PEAK)): return  
+    #if os.path.exists('ngtsfit_{:}.html'.format(PEAK)): return  
 
 
     # Now wait for the lightcurve

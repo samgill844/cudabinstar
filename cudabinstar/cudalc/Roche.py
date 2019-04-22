@@ -1,25 +1,29 @@
 import numpy as np 
 import numba 
 import matplotlib.pyplot as plt 
+from cudabinstar.cudalc import lc
+# from https://books.google.co.uk/books?id=ngtmDwAAQBAJ&pg=PA239&lpg=PA239&dq=ellipsoidal+variation+approximation+binary+star&source=bl&ots=swiO_JQdIR&sig=ACfU3U0HVtS8G37Z7EbdjDymUqICD36FgA&hl=en&sa=X&ved=2ahUKEwiO1tH9ud7hAhWDaFAKHRVoASIQ6AEwC3oECAkQAQ#v=onepage&q=ellipsoidal%20variation%20approximation%20binary%20star&f=false
 
-# Lets start with a spherical example 
-theta = np.linspace(0,2*np.pi, 20)    # the angle around the star
-dtheta = theta[1] - theta[0]
+phase = np.linspace(-1,1,1000)
+q = 0.1
+radius_1 = 0.5 
+incl = np.pi/2 
 
-radii = np.linspace(0,1,100)                             # the radius of the star 
-dr = radii[1] - radii[0] 
-
-# limb darkening law 
-alpha = 0.8
-c = 0.8 
-
-@numba.njit 
-def ld_law(alpha, c, mu) : return 1 - c*(1 - mu**(alpha))
-
-I_sum = 0
+u = 0.5 #linear limb darkening 
+y = 0.3 # gravity darkening
 
 
-for i in range(theta.shape[0]):
-    for j in range(radii.shape[0]):
-        I_sum += dtheta*dr * ld_law(alpha, c, 1 - radii[j]**2)
 
+Ft = lc(phase, radius_1=0.2, k =0.3)
+
+alpha1 = ((y+2)/(y+1))*25*u / (24*(15 + u))
+alpha2 = (y+1)*(3*(15+u))/(20*(3-u))
+
+Ae = alpha2*q*(radius_1**3)*np.sin(incl)**2
+f1 = 3*alpha1*radius_1*(5*np.sin(incl)**2 - 4)/np.sin(incl) 
+f2 = 5*alpha1*radius_1*np.sin(incl) 
+
+Fe = -Ae*( np.cos(2*np.pi*2*phase)    +    f1*np.cos(2*np.pi*phase)      +      f2*np.cos(2*np.pi*3*phase) )
+plt.plot(phase, -2.5*np.log10(Ft + Fe)) 
+plt.gca().invert_yaxis()
+plt.show()

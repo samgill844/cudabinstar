@@ -1,0 +1,1 @@
+__host__ __device__ double Fellipsoidal(double nu, double q, double radius_1, double incl, double u, double y);
