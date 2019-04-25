@@ -40,6 +40,7 @@ __device__ __host__ double getEccentricAnomaly (double M, double e, int Accurate
     }
     else
     {
+        // This method has a bug somewhere, whereby the epoch is shifted after the first epoch
         if (e==0.) return M;
 
         int flip = 0;
@@ -78,10 +79,10 @@ __device__ __host__ double t_ecl_to_peri(double t_ecl, double e, double w, doubl
 {
     // Define variables used
     //double efac  = 1.0 - e*2;
-    double sin2i = pow(sin(incl),2);
+    double sin2i = pow(sin(incl),2.);
 
     // Value of theta for i=90 degrees
-    double ee, theta_0 = (M_PI/2) - w;             // True anomaly at superior conjunction
+    double ee, theta_0 = (M_PI/2.) - w;             // True anomaly at superior conjunction
 
     //if (incl != math.pi/2.) and (Accurate_t_ecl == True) :  theta_0 =  brent(get_z_, theta_0-math.pi, theta_0 + math.pi,  (e, incl, w, radius_1), t_ecl_tolerance )
     if (theta_0 == M_PI)  ee = M_PI;
@@ -100,7 +101,7 @@ extern "C" {
 __host__ __device__ double getTrueAnomaly(double time, double  e, double w, double period, double t_zero, double incl, double radius_1, double t_ecl_tolerance, int Accurate_t_ecl,  int Accurate_Eccentric_Anomaly, double E_tol )
 {
     // Sort inclination out
-    incl = M_PI*incl / 180. ;
+    //incl = M_PI*incl / 180. ;
 
     // Calcualte the mean anomaly
     double M = 2*M_PI*fmod((time -  t_ecl_to_peri(t_zero, e, w, incl, radius_1, period, t_ecl_tolerance, Accurate_t_ecl)  )/period, 1.);

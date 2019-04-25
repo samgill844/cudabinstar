@@ -1,0 +1,1 @@
+__host__ __device__ double Fdoppler(double alpha, double alpha_doppler, double K1 );

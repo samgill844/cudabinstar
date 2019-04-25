@@ -1,6 +1,4 @@
 #include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 __host__ __device__ double Fellipsoidal(double nu, double q, double radius_1, double incl, double u, double y)
 {
@@ -11,7 +9,7 @@ __host__ __device__ double Fellipsoidal(double nu, double q, double radius_1, do
     // u - linear limb-darkening coefficient
     // y - gravitational darkening coefficient 
     // nu - true anomaly 
-    nu += M_PI/2;
+    //nu /= 2;
     // true anomaly goes from -pi to pi 
     // to convert to phase,we could ass pi and divide by two pi
     double alpha1 = ((y+2.)/(y+1.))*25.*u / (24.*(15. + u));

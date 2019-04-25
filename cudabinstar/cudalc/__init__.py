@@ -186,7 +186,10 @@ def __get_lc_functions():
     _lc.argtypes = [POINTER(c_double), POINTER(c_double),
                  c_double, c_double,
                  c_double,c_double,
-                 c_double,c_double,c_double,
+                 c_double,c_double,
+                 c_double, c_double,
+                 c_double, c_double,
+                 POINTER(c_double), c_double, c_int,
                  c_double,
                  c_int, c_double, c_double,c_double,
                  c_double, c_double,
@@ -216,22 +219,29 @@ _lc, _lc_loglike = __get_lc_functions()
 def lc(time, 
     t_zero = 0.0, period = 1.0,
     radius_1 = 0.2, k=0.2, 
-    fs = 0.0, fc = 0.0, q=0.,
+    fs = 0.0, fc = 0.0, 
+    q=0., albedo = 0.,
+    alpha_doppler=0., K1 = 0.,
+    spots = np.array([0.2, 0.0, 0.1,0.5]), omega_1=1., nspots=0,
     incl = 90.,
     ldc_law_1=0, ldc_1_1=0.8, ldc_1_2=0.8, gdc_1=0.3,
     SBR=0., light_3 = 0.,
-    Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=0, E_tol=1e-5):
+    Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5):
 
     time = time.astype(np.float64)
     LC = np.empty(time.shape[0], dtype = np.float64)
 
     d_time =  time.ctypes.data_as(POINTER(c_double))
     d_LC =  LC.ctypes.data_as(POINTER(c_double))
+    d_spots = spots.ctypes.data_as(POINTER(c_double))
 
     _lc(d_time, d_LC,
         t_zero, period,
         radius_1, k,
-        fs,fc,q,
+        fs,fc,
+        q,albedo,
+        alpha_doppler, K1,
+        d_spots, omega_1, nspots,
         incl,
         ldc_law_1, ldc_1_1, ldc_1_2, gdc_1,
         SBR, light_3,

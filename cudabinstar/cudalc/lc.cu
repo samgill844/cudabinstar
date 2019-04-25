@@ -1,16 +1,20 @@
 #include <math.h>
-#include<stdlib.h>
-#include<stdio.h>
+#include <stdio.h>
 
 #include "kepler.h"
 #include "flux_drop.h"
 #include "ellipsoidal.h"
-
+#include "reflected.h"
+#include "doppler.h"
+#include "spots.h"
 
 extern "C" {__host__ __device__ void lc(const double * time, double * LC,
                         double t_zero, double period,
                         double radius_1, double k ,
-                        double fs, double fc, double q,
+                        double fs, double fc, 
+                        double q, double albedo,
+                        double alpha_doppler, double K1,
+                        const double * spots, double omega_1, int nspots,
                         double incl,
                         int ld_law_1, double ldc_1_1, double ldc_1_2, double gdc_1,
                         double SBR, double light_3,
@@ -20,7 +24,7 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
     // Still do do 
     // Accoutn for difference in primary transit depth from SBR
     // Solve for linear limb-darkening coeff from limb-darkening law (maybe function pointers if supported?)
-    int i;
+    int i,j;
     double nu, z, l, f;
 
     // Conversion
@@ -29,7 +33,7 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
     incl = M_PI*incl/180.;
 
     // Individual fluxes 
-    double F_transit, F_ellipsoidal, F_spots;
+    double F_transit, F_doppler, F_ellipsoidal, F_reflected, F_spots, alpha;
     double u = 0.6;
     for (i=0; i < N_LC; i++)
     {
@@ -41,21 +45,47 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
 
         // Initialse the flux
         // The model we will use is:
-        //   F_tot = F_ellipsoidal + F_spots + F_transit 
+        //   F_tot = F_ecl + F_d + F_ellipsoidal + F_spots + F_transit 
         //   F_ellipsoidal -> ellipsoidal effect contralled by the mass ratio, q and the gravity limb-darkening coefficient
         //   F_spots -> flux drop from spots controlled by the eker model
         //   F_transit -> flux from the desired transit model (using 1 as the continuum)
         l = 1.;
         F_transit=1;
+        F_doppler = 0.;
         F_ellipsoidal=0;
+        F_reflected=0;
         F_spots=0;
 
+        // Check for stellar spots 
+        if (nspots > 0)
+        {
+            double spot_phase = omega_1*2*M_PI*(time[i] - t_zero)/period;
+            for (j=0; j < nspots; j++) F_spots += eker_spots(spots[j*4 + 0], spots[j*4 +1], incl, spots[j*4 +2], spots[j*4 +3], 0.5,0.3, spot_phase);
+        }
+
+        // Check for doppler beaming 
+        if (alpha_doppler > 0 & K1 > 0)
+        {
+            //alpha = acos(sin(w + nu)*sin(incl));
+            F_doppler = Fdoppler(nu, alpha_doppler, K1 );
+        }
+
         // Check for eelipsoidal variation and apply it if needed
-        if (q>0) F_ellipsoidal = Fellipsoidal(nu, q, radius_1, incl, u, gdc_1);
+        if (q>0.)
+        {
+            alpha = acos(sin(w + nu)*sin(incl));
+            F_ellipsoidal = Fellipsoidal(alpha, q, radius_1, incl, u, gdc_1);
+        }; 
+
+        // Check for reflected light from the secondary
+        if (albedo > 0.)
+        {
+            alpha = acos(sin(w + nu)*sin(incl));
+            F_reflected =  Freflected(alpha, nu, albedo, period, q, e, radius_1, k);
+        }
 
 
 
-        
 
         // Check distance between them to see if its transiting
         if (z < (1.0+ k))
@@ -72,7 +102,7 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
         }
 
         // Create the total lightcurve 
-        LC[i] = F_transit + F_spots + F_ellipsoidal;
+        LC[i] = F_transit + F_doppler+ F_spots + F_ellipsoidal + F_reflected;
 
         // Don't forget to account for third light
         if (light_3 > 0.0)  LC[i] = LC[i]/(1. + light_3) + (1.-1.0/(1. + light_3));

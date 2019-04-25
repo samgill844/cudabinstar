@@ -1,0 +1,2 @@
+__host__ __device__ void ld_quad_match(int ld_law, double * ldc, double * I_ret);
+__host__ __device__ double eker_spots(double l, double b, double i, double r, double a, double u1, double u2, double phi);
