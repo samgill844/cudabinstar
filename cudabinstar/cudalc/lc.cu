@@ -39,7 +39,7 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
 
     omp_set_num_threads(nthreads);
 
-    #pragma omp parallel for shared(LC, time) private(nu, z, l, f, F_transit, F_doppler, F_ellipsoidal, F_reflected, F_spots, alpha)
+    #pragma omp parallel for shared(LC, time, spots) private(nu, z, l, f, F_transit, F_doppler, F_ellipsoidal, F_reflected, F_spots, alpha, j)
     for (i=0; i < N_LC; i++)
     {
         // Get the true anomaly
