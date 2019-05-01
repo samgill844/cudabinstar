@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <omp.h>
 
 #include "kepler.h"
 #include "flux_drop.h"
@@ -19,7 +20,7 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
                         int ld_law_1, double ldc_1_1, double ldc_1_2, double gdc_1,
                         double SBR, double light_3,
                         int Accurate_t_ecl, double t_ecl_tolerance, int Accurate_Eccentric_Anomaly, double E_tol,
-                        int N_LC )
+                        int N_LC, int nthreads )
 {
     // Still do do 
     // Accoutn for difference in primary transit depth from SBR
@@ -35,6 +36,10 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
     // Individual fluxes 
     double F_transit, F_doppler, F_ellipsoidal, F_reflected, F_spots, alpha;
     double u = 0.6;
+
+    omp_set_num_threads(nthreads);
+
+    #pragma omp parallel for shared(LC, time) private(nu, z, l, f, F_transit, F_doppler, F_ellipsoidal, F_reflected, F_spots, alpha)
     for (i=0; i < N_LC; i++)
     {
         // Get the true anomaly

@@ -9,7 +9,7 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC,
                         int ld_law_1, double ldc_1_1, double ldc_1_2, double gdc_1,
                         double SBR, double light_3,
                         int Accurate_t_ecl, double t_ecl_tolerance, int Accurate_Eccentric_Anomaly, double E_tol,
-                        int N_LC );}
+                        int N_LC, int nthreads );}
 
 
 extern "C" {__host__ __device__ double lc_loglike(const double * time, const double * LC, const double * LC_ERR, double zp, double J,

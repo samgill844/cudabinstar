@@ -194,7 +194,7 @@ def __get_lc_functions():
                  c_int, c_double, c_double,c_double,
                  c_double, c_double,
                  c_int, c_double, c_int, c_double,
-                 c_int]
+                 c_int, c_int]
     _lc.restype = None
 
     _lc_loglike = dl.lc_loglike
@@ -226,7 +226,8 @@ def lc(time,
     incl = 90.,
     ldc_law_1=0, ldc_1_1=0.8, ldc_1_2=0.8, gdc_1=0.3,
     SBR=0., light_3 = 0.,
-    Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5):
+    Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5,
+    nthreads=1):
 
     time = time.astype(np.float64)
     LC = np.empty(time.shape[0], dtype = np.float64)
@@ -246,7 +247,7 @@ def lc(time,
         ldc_law_1, ldc_1_1, ldc_1_2, gdc_1,
         SBR, light_3,
         Accurate_t_ecl, t_ecl_tolerance, Accurate_Eccentric_Anomaly, E_tol,
-        time.shape[0])
+        time.shape[0], nthreads)
 
     return make_nd_array(d_LC, (time.shape[0],))
 

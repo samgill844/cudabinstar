@@ -1,5 +1,5 @@
 cc=nvcc
-COMPILER_FLAGS = -O3 -Xcompiler -fpic -rdc=true --default-stream per-thread -Xptxas -O3 
+COMPILER_FLAGS = -O3 -Xcompiler -fpic -Xcompiler -fopenmp -rdc=true --default-stream per-thread -Xptxas -O3 
 
 
 all : kepler.o rv.o flux_drop.o lc.o 
@@ -32,6 +32,6 @@ clean:
 	rm *.o
 
 install : 
-	mv *.o ../../lib
+	cp *.o ../../lib
 	cp *.h ../../include
-	nvcc -Xcompiler -fPIC -shared -o cudalc.so *.cu
+	nvcc -Xcompiler -fPIC -Xcompiler -fopenmp -shared -o cudalc.so *.cu
