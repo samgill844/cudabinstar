@@ -3,9 +3,9 @@ all :
 	mkdir -p include
 	mkdir -p ~/bin
 	(cd cudabinstar/cudalc; make; make install)
-	(cd cudabinstar/cudamc; make; make install)
-	(cd ngtsfit; make; make install)
-	(cd ngtsfieldfit; make install)
+	#(cd cudabinstar/cudamc; make; make install)
+	#(cd ngtsfit; make; make install)
+	#(cd ngtsfieldfit; make install)
 
 
 clean : 

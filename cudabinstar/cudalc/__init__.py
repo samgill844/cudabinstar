@@ -183,7 +183,7 @@ def rv_loglike(time, RV, RV_err, jitter=0.1,
 # Now do LC
 def __get_lc_functions():
     _lc = dl.lc
-    _lc.argtypes = [POINTER(c_double), POINTER(c_double),
+    _lc.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_double),c_double,
                  c_double, c_double,
                  c_double,c_double,
                  c_double,c_double,
@@ -194,29 +194,16 @@ def __get_lc_functions():
                  c_int, c_double, c_double,c_double,
                  c_double, c_double,
                  c_int, c_double, c_int, c_double,
-                 c_int, c_int]
-    _lc.restype = None
-
-    _lc_loglike = dl.lc_loglike
-    _lc_loglike.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_double), c_double, c_double,
-                 c_double, c_double,
-                 c_double,c_double,
-                 c_double,c_double,
-                 c_double,
-                 c_int, c_double, c_double,
-                 c_double, c_double,
-                 c_int, c_double, c_int, c_double,
+                 c_int, c_int,
                  c_int]
-    _lc_loglike.restype = c_double
+    _lc.restype = c_double
 
-    return _lc, _lc_loglike
-
-
+    return _lc
 
 
-_lc, _lc_loglike = __get_lc_functions()
+_lc = __get_lc_functions()
 
-def lc(time, 
+def lc(time, mag=np.zeros(1), mag_err=np.zeros(1), J=0.,
     t_zero = 0.0, period = 1.0,
     radius_1 = 0.2, k=0.2, 
     fs = 0.0, fc = 0.0, 
@@ -229,14 +216,21 @@ def lc(time,
     Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5,
     nthreads=1):
 
-    time = time.astype(np.float64)
-    LC = np.empty(time.shape[0], dtype = np.float64)
+    if (mag[0]==0) or (mag_err[0]==0) : 
+        LC = np.empty(time.shape[0], dtype = np.float64) # d_LC is the only thing that will be populated
+        d_LC =  LC.ctypes.data_as(POINTER(c_double))
+        d_LC_ERR =  LC.ctypes.data_as(POINTER(c_double))
+        loglike_switch = 0
+    else:
+        d_LC = mag.ctypes.data_as(POINTER(c_double))
+        d_LC_ERR = mag_err.ctypes.data_as(POINTER(c_double))
+        loglike_switch = 1
+
 
     d_time =  time.ctypes.data_as(POINTER(c_double))
-    d_LC =  LC.ctypes.data_as(POINTER(c_double))
     d_spots = spots.ctypes.data_as(POINTER(c_double))
 
-    _lc(d_time, d_LC,
+    loglike = _lc(d_time, d_LC, d_LC_ERR, J,
         t_zero, period,
         radius_1, k,
         fs,fc,
@@ -247,34 +241,10 @@ def lc(time,
         ldc_law_1, ldc_1_1, ldc_1_2, gdc_1,
         SBR, light_3,
         Accurate_t_ecl, t_ecl_tolerance, Accurate_Eccentric_Anomaly, E_tol,
-        time.shape[0], nthreads)
+        time.shape[0], nthreads,
+        loglike_switch)
 
-    return make_nd_array(d_LC, (time.shape[0],))
+    if loglike_switch : return loglike
+    else              : return make_nd_array(d_LC, (time.shape[0],))
 
-def lc_loglike(time, LC, LC_err, zp = 0.0, jitter = 0.0,
-    t_zero = 0.0, period = 1.0,
-    radius_1 = 0.2, k=0.2, 
-    fs = 0.0, fc = 0.0,
-    incl = 90.,
-    ldc_law_1=0, ldc_1_1=0.8, ldc_1_2=0.8,
-    SBR=0., light_3 = 0.,
-    Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=0, E_tol=1e-5):
-
-    time = time.astype(np.float64)
-    LC = LC.astype(np.float64)
-    LC_err = LC_err.astype(np.float64)
-
-    d_time =  time.ctypes.data_as(POINTER(c_double))
-    d_LC =  LC.ctypes.data_as(POINTER(c_double))
-    d_LC_err =  LC_err.ctypes.data_as(POINTER(c_double))
-
-    return _lc_loglike(d_time, d_LC, d_LC_err, zp, jitter,
-        t_zero, period,
-        radius_1, k,
-        fs,fc,
-        incl,
-        ldc_law_1, ldc_1_1, ldc_1_2,
-        SBR, light_3,
-        Accurate_t_ecl, t_ecl_tolerance, Accurate_Eccentric_Anomaly, E_tol,
-        time.shape[0])
 
