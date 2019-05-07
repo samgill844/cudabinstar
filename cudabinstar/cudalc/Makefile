@@ -34,4 +34,4 @@ clean:
 install : 
 	cp *.o ../../lib
 	cp *.h ../../include
-	nvcc -Xcompiler -fPIC -Xcompiler -fopenmp -shared -o cudalc.so *.cu
+	nvcc -rdc=true -Xcompiler -fPIC -Xcompiler -fopenmp -shared -o cudalc.so kepler.cu ellipsoidal.cu reflected.cu doppler.cu spots.cu flux_drop.cu lc.cu

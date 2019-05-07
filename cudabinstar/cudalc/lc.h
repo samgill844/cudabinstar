@@ -11,3 +11,17 @@ extern "C" {__host__ __device__ void lc(const double * time, double * LC, double
                         int Accurate_t_ecl, double t_ecl_tolerance, int Accurate_Eccentric_Anomaly, double E_tol,
                         int N_LC, int nthreads,
                         int logswitch );}
+
+
+extern "C" {double lc_gpu(const double * time, double * LC, double * LC_ERR, double J,
+    double t_zero, double period,
+    double radius_1, double k ,
+    double fs, double fc, 
+    double q, double albedo,
+    double alpha_doppler, double K1,
+    const double * spots, double omega_1, int nspots,
+    double incl,
+    int ld_law_1, double ldc_1_1, double ldc_1_2, double gdc_1,
+    double SBR, double light_3,
+    int Accurate_t_ecl, double t_ecl_tolerance, int Accurate_Eccentric_Anomaly, double E_tol,
+    int N_LC, int threads_per_block);}

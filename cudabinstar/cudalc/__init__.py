@@ -94,7 +94,7 @@ extern "C" {__device__ __host__ double mass_function_1(double e, double P, doubl
 extern "C" {__device__ __host__ double mass_function_1_(double M2, double * z);}
 '''
 
-
+'''
 # Then get rv functions
 def __get_rv_functions():
     _rv = dl.rv
@@ -178,7 +178,7 @@ def rv_loglike(time, RV, RV_err, jitter=0.1,
     #return RV
 
 
-
+'''
 
 # Now do LC
 def __get_lc_functions():
@@ -198,10 +198,27 @@ def __get_lc_functions():
                  c_int]
     _lc.restype = c_double
 
-    return _lc
+
+    _lc_gpu = dl.lc_gpu 
+    _lc_gpu.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_double),c_double,
+                c_double, c_double,
+                c_double,c_double,
+                c_double,c_double,
+                c_double, c_double,
+                c_double, c_double,
+                POINTER(c_double), c_double, c_int,
+                c_double,
+                c_int, c_double, c_double,c_double,
+                c_double, c_double,
+                c_int, c_double, c_int, c_double,
+                c_int, c_int]
+    _lc_gpu.restype = c_double
 
 
-_lc = __get_lc_functions()
+    return _lc, _lc_gpu
+
+
+_lc, _lc_gpu = __get_lc_functions()
 
 def lc(time, mag=np.zeros(1), mag_err=np.zeros(1), J=0.,
     t_zero = 0.0, period = 1.0,
@@ -246,5 +263,53 @@ def lc(time, mag=np.zeros(1), mag_err=np.zeros(1), J=0.,
 
     if loglike_switch : return loglike
     else              : return make_nd_array(d_LC, (time.shape[0],))
+
+
+
+def lc_gpu(time, mag=-99*np.ones(1), mag_err=-99*np.ones(1), J=0.,
+    t_zero = 0.0, period = 1.0,
+    radius_1 = 0.2, k=0.2, 
+    fs = 0.0, fc = 0.0, 
+    q=0., albedo = 0.,
+    alpha_doppler=0., K1 = 0.,
+    spots = np.array([0.2, 0.0, 0.1,0.5]), omega_1=1., nspots=0,
+    incl = 90.,
+    ldc_law_1=0, ldc_1_1=0.8, ldc_1_2=0.8, gdc_1=0.3,
+    SBR=0., light_3 = 0.,
+    Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5,
+    threads_per_block = 512):
+
+    
+    if (mag[0]==-99) or (mag_err[0]==-99) : 
+        LC = np.empty(time.shape[0], dtype = np.float64) # d_LC is the only thing that will be populated
+        d_LC =  LC.ctypes.data_as(POINTER(c_double))
+        d_LC_ERR =  LC.ctypes.data_as(POINTER(c_double))
+        loglike_switch = 0
+    else:
+        d_LC = mag.ctypes.data_as(POINTER(c_double))
+        d_LC_ERR = mag_err.ctypes.data_as(POINTER(c_double))
+        loglike_switch = 1
+
+
+    d_time =  time.ctypes.data_as(POINTER(c_double))
+    d_spots = spots.ctypes.data_as(POINTER(c_double))
+
+    loglike = _lc_gpu(d_time, d_LC, d_LC_ERR, J,
+        t_zero, period,
+        radius_1, k,
+        fs,fc,
+        q,albedo,
+        alpha_doppler, K1,
+        d_spots, omega_1, nspots,
+        incl,
+        ldc_law_1, ldc_1_1, ldc_1_2, gdc_1,
+        SBR, light_3,
+        Accurate_t_ecl, t_ecl_tolerance, Accurate_Eccentric_Anomaly, E_tol,
+        time.shape[0], threads_per_block)
+
+    return loglike
+
+
+
 
 
