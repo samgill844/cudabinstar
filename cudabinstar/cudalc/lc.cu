@@ -12,7 +12,7 @@
 
 #define BLOCKSIZE  256
 
-extern "C" {__host__ __device__ double lc(const double * time, double * LC, double * LC_ERR, double J,
+extern "C" {__host__ __device__ double lc(const double * time, double * LC, double * LC_ERR, double J, double zp,
                         double t_zero, double period,
                         double radius_1, double k ,
                         double fs, double fc, 
@@ -118,7 +118,7 @@ extern "C" {__host__ __device__ double lc(const double * time, double * LC, doub
         // Now do loglike if required
         if (logswitch)
         {
-            nu = -2.5*log10(nu);
+            nu = zp-2.5*log10(nu);
             wt = 1./(pow(LC_ERR[i], 2) + pow(J, 2));
             loglike += -0.5*( pow(LC[i] - nu, 2)*wt - log(wt)   );
         }
@@ -134,7 +134,7 @@ extern "C" {__host__ __device__ double lc(const double * time, double * LC, doub
 
 
 
-extern "C" {__global__ void d_lc(const double * time, double * LC, double * LC_ERR, double * loglike, double J,
+extern "C" {__global__ void d_lc(const double * time, double * LC, double * LC_ERR, double * loglike, double J, double zp,
                         double t_zero, double period,
                         double radius_1, double k ,
                         double fs, double fc, 
@@ -232,9 +232,10 @@ extern "C" {__global__ void d_lc(const double * time, double * LC, double * LC_E
     if (light_3 > 0.0)  nu = nu/(1. + light_3) + (1.-1.0/(1. + light_3)); // third light
 
     // Now do loglike if required
-    nu = -2.5*log10(nu);
+    nu = zp-2.5*log10(nu);
     wt = 1./(pow(LC_ERR[i], 2) + pow(J, 2));
     loglike[i] = -0.5*( pow(LC[i] - nu,2)*wt - log(wt)   );
+    
 }}
 
 void swap(double* &a, double* &b){
@@ -263,7 +264,7 @@ __global__ void sum(const double * __restrict__ indata, double * __restrict__ ou
     if(threadIdx.x == 0) outdata[blockIdx.x] = result;
 }
 
-extern "C" {double lc_gpu(const double * time, double * LC, double * LC_ERR, double J,
+extern "C" {double lc_gpu(const double * time, double * LC, double * LC_ERR, double J, double zp,
     double t_zero, double period,
     double radius_1, double k ,
     double fs, double fc, 
@@ -302,10 +303,14 @@ extern "C" {double lc_gpu(const double * time, double * LC, double * LC_ERR, dou
     // 2. Recursively launch the reduction kernel to quickly sum it. This involves swapping device pointers. 
     // 3. Memcpy back to host and return the loglikliehood. 
 
+    // memset the other loglike values to 0. 
+    cudaMemset(&d_loglike_in[N_LC], 0.0, (N_LC_LOGLIKE - N_LC)*sizeof(double) );
+    cudaMemset(&d_loglike_out[N_LC], 0.0, (N_LC_LOGLIKE - N_LC)*sizeof(double) );
+
     int blocks = ceil(N_LC/threads_per_block);
 
     // 1. Populate d_loglike_in with the loglikeliehood values at eachtime stamp
-    d_lc<<<blocks, threads_per_block>>>(d_time, d_LC, d_LC_ERR, d_loglike_in, J,
+    d_lc<<<blocks, threads_per_block>>>(d_time, d_LC, d_LC_ERR, d_loglike_in, J, zp,
         t_zero, period,
         radius_1, k ,
         fs, fc, 
@@ -318,11 +323,11 @@ extern "C" {double lc_gpu(const double * time, double * LC, double * LC_ERR, dou
         Accurate_t_ecl, t_ecl_tolerance, Accurate_Eccentric_Anomaly, E_tol,
         N_LC );
 
+
+
     // Wait for it to finish 
     cudaDeviceSynchronize();
 
-
-    
     // 2. Recursively launch the reduction kernel until a lightucrve size of 1 is reched. 
     blocks = ceil(N_LC_LOGLIKE/BLOCKSIZE);
     //printf("\n%d %d %d", N_LC_LOGLIKE, blocks, N_LC_LOGLIKE /BLOCKSIZE );

@@ -183,7 +183,7 @@ def rv_loglike(time, RV, RV_err, jitter=0.1,
 # Now do LC
 def __get_lc_functions():
     _lc = dl.lc
-    _lc.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_double),c_double,
+    _lc.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_double),c_double,c_double,
                  c_double, c_double,
                  c_double,c_double,
                  c_double,c_double,
@@ -200,7 +200,7 @@ def __get_lc_functions():
 
 
     _lc_gpu = dl.lc_gpu 
-    _lc_gpu.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_double),c_double,
+    _lc_gpu.argtypes = [POINTER(c_double), POINTER(c_double), POINTER(c_double),c_double,c_double,
                 c_double, c_double,
                 c_double,c_double,
                 c_double,c_double,
@@ -220,7 +220,7 @@ def __get_lc_functions():
 
 _lc, _lc_gpu = __get_lc_functions()
 
-def lc(time, mag=np.zeros(1), mag_err=np.zeros(1), J=0.,
+def lc(time, mag=np.zeros(1), mag_err=np.zeros(1), J=0., zp=0.0,
     t_zero = 0.0, period = 1.0,
     radius_1 = 0.2, k=0.2, 
     fs = 0.0, fc = 0.0, 
@@ -247,7 +247,7 @@ def lc(time, mag=np.zeros(1), mag_err=np.zeros(1), J=0.,
     d_time =  time.ctypes.data_as(POINTER(c_double))
     d_spots = spots.ctypes.data_as(POINTER(c_double))
 
-    loglike = _lc(d_time, d_LC, d_LC_ERR, J,
+    loglike = _lc(d_time, d_LC, d_LC_ERR, J, zp,
         t_zero, period,
         radius_1, k,
         fs,fc,
@@ -266,7 +266,7 @@ def lc(time, mag=np.zeros(1), mag_err=np.zeros(1), J=0.,
 
 
 
-def lc_gpu(time, mag=-99*np.ones(1), mag_err=-99*np.ones(1), J=0.,
+def lc_gpu(time, mag=-99*np.ones(1), mag_err=-99*np.ones(1), J=0., zp=0.0,
     t_zero = 0.0, period = 1.0,
     radius_1 = 0.2, k=0.2, 
     fs = 0.0, fc = 0.0, 
@@ -294,7 +294,7 @@ def lc_gpu(time, mag=-99*np.ones(1), mag_err=-99*np.ones(1), J=0.,
     d_time =  time.ctypes.data_as(POINTER(c_double))
     d_spots = spots.ctypes.data_as(POINTER(c_double))
 
-    loglike = _lc_gpu(d_time, d_LC, d_LC_ERR, J,
+    loglike = _lc_gpu(d_time, d_LC, d_LC_ERR, J, zp,
         t_zero, period,
         radius_1, k,
         fs,fc,
