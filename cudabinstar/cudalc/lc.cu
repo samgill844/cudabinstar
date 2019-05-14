@@ -32,6 +32,7 @@ extern "C" {__host__ __device__ double lc(const double * time, double * LC, doub
     int i,j;
     double nu, z, l, f;
 
+    // printf("\nk = %f", k);
     // Conversion
     double e = fs*fs + fc*fc;
     double w  = atan2(fs, fc);
@@ -42,10 +43,10 @@ extern "C" {__host__ __device__ double lc(const double * time, double * LC, doub
     double u = 0.6;
     double loglike=0., wt;
 
-#if !defined (__CUDACC__)
-    omp_set_num_threads(nthreads);
-    #pragma omp parallel for shared(LC, time, spots) private(nu, z, l, f, F_transit, F_doppler, F_ellipsoidal, F_reflected, F_spots, alpha, j) reduction(+:loglike)
-#endif
+// #if !defined (__CUDACC__)
+//   omp_set_num_threads(nthreads);
+//    #pragma omp parallel for shared(LC, time, spots) private(nu, z, l, f, F_transit, F_doppler, F_ellipsoidal, F_reflected, F_spots, alpha, j) reduction(+:loglike)
+// #endif
     for (i=0; i < N_LC; i++)
     {
         // Get the true anomaly

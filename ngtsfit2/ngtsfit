@@ -1,0 +1,431 @@
+#!/home/sam/anaconda3/bin/python
+
+from cudabinstar.cudalc import lc
+import emcee, corner, sys, os, numpy as np
+import matplotlib.pyplot as plt 
+import argparse 
+from multiprocessing import Pool
+
+from scipy.stats import chisquare, sem
+import matplotlib.cm as cm
+np.warnings.filterwarnings('ignore')
+
+def lc_bin(time, flux, bin_width):
+        '''
+        Function to bin the data into bins of a given width. time and bin_width 
+        must have the same units
+        '''
+        
+        edges = np.arange(np.min(time), np.max(time), bin_width)
+        dig = np.digitize(time, edges)
+        time_binned = (edges[1:] + edges[:-1]) / 2
+        flux_binned = np.array([np.nan if len(flux[dig == i]) == 0 else flux[dig == i].mean() for i in range(1, len(edges))])
+        err_binned = np.array([np.nan if len(flux[dig == i]) == 0 else sem(flux[dig == i]) for i in range(1, len(edges))])
+        time_bin = time_binned[~np.isnan(err_binned)]
+        err_bin = err_binned[~np.isnan(err_binned)]
+        flux_bin = flux_binned[~np.isnan(err_binned)]   
+        
+        return time_bin, flux_bin, err_bin
+
+
+# Phase
+def phaser(time, t_zero, period) : return ((time - t_zero)/period) - np.floor((time - t_zero)/period)
+
+# Welcom messages
+welcome_message = '''---------------------------------------------------
+-                   NGTSfit V.2                   -
+-             samuel.gill@wariwck.ac.uk           -
+---------------------------------------------------'''
+
+description = '''A program to fit binary star observations elegantly. 
+Use the -h flag to see all available options for the fit. For any questions, 
+please email samuel.gill@warwick.ac.uk'''
+
+emcee_message = '''---------------------------------------------------
+-                   emcee                         -
+---------------------------------------------------'''
+
+
+# Argument parser
+parser = argparse.ArgumentParser('ngtsfit', description=description)
+#parser.add_argument('-t', 
+#                help='The transit epoch in arbritraty time units consisting with the input file.', 
+#                dest="t_zero", 
+#                action='store')
+
+parser.add_argument("filename",
+                    help='The filename of the binary star information')
+
+
+parser.add_argument('-a', 
+                    '--t_zero',
+                    help='The transit epoch in arbritraty time units consisting with the input file.', 
+                    default=0.0, type=float)
+
+parser.add_argument('-b', 
+                    '--period',
+                    help='The orbital period in arbritraty time units consisting with the input file.',
+                    default=1.0, type=float)  
+
+parser.add_argument('-c', 
+                    '--radius_1',
+                    help='The radius of star 1 in units of the semi-major axis, a.',
+                    default=0.2, type=float)  
+
+parser.add_argument('-d', 
+                    '--k',
+                    help='The ratio of the radii of star 2 and star 1 (R2/R1).',
+                    default=0.2, type=float)  
+    
+parser.add_argument('-e', 
+                    '--b',
+                    help='The impact parameter of the orbit (incl = arccos(radius_1*b).',
+                    default=0., type=float)  
+
+parser.add_argument('-f', 
+                    '--zp',
+                    help='The photometric zero-point.',
+                    default=0., type=float) 
+
+parser.add_argument('-g', 
+                '--limb_darkening_law',
+                help='The limb-darkening law for star 1. Options are: 1) quadratic, 2) power2 .',
+                default='quadratic') 
+
+parser.add_argument('-i', 
+                '--ldc_1',
+                help='The first limb-darkening coefficient [default 0.5].',
+                default=0.5, type=float)
+
+parser.add_argument('-j', 
+                '--ldc_2',
+                help='The second limb-darkening coefficient [default 0.2].',
+                default=0.2, type=float) 
+
+
+parser.add_argument('-k', '--spots', 
+                    help='The information for spots on star 1, if required', 
+                    nargs='+', 
+                    type=float, 
+                    default=[])
+
+parser.add_argument('-l', 
+                '--gdc_1',
+                help='The gravity darkening coefficient of star 1 [default 0.4].',
+                default=0.4, type=float) 
+
+parser.add_argument('-m', 
+                '--q',
+                help='The mass ratio of star 2 to star 1 [default 0.].',
+                default=0., type=float) 
+
+parser.add_argument('-n', 
+                '--albedo',
+                help='The albedo of the secondary [default 0.]',
+                default=0., type=float)
+
+parser.add_argument('-o', 
+                '--alpha_doppler',
+                help='The alpha_doppler parameter.',
+                default=0., type=float)
+
+parser.add_argument('-p', 
+                '--K1',
+                help='The semi-amplitude [km/s] of radial velocity (used for ellipsoidal variation and rv) [default 10].',
+                default=10, type=float)
+
+parser.add_argument('-q', 
+                '--light_3',
+                help='The third light in the system [default 0.].',
+                default=0., type=float)
+
+parser.add_argument('-r', 
+                '--SBR',
+                help='The surface-brightness ratio [default 0.].',
+                default=0., type=float)
+
+parser.add_argument('-w', 
+                '--J',
+                help='The additional Jitter [default 0.].',
+                default=0., type=float)
+
+parser.add_argument('--trial', action="store_true", default=False)
+
+parser.add_argument('-s', 
+                '--plot_alpha',
+                help='The plot alpha',
+                default=1., type=float)
+
+
+parser.add_argument('-t', '--fitpars', 
+                    help='A comma seperated list of free parameters', 
+                    nargs='+',
+                    default=[])
+
+parser.add_argument('--emcee', action="store_true", default=False)
+parser.add_argument('-u', 
+                '--emcee_steps',
+                help='The number of emcee steps [default 1000]',
+                default=1000, type=int)
+
+parser.add_argument('-v', 
+                '--emcee_burn_in',
+                help='The number of emcee steps to discard [default 500]',
+                default=500, type=int)
+
+parser.add_argument('-x', 
+                '--threads',
+                help='The number of threads to use [default 1]',
+                default=1, type=int)
+
+
+
+
+# Emcee function 
+def lnlike(theta, time, mag, mag_err, theta_names, t_zero_ref, period_ref):
+
+
+    # Make a copy of the args and copy over the values
+    args1 = np.copy(args).all()
+    for i in range(len(theta_names)) : args1.__setattr__(theta_names[i], theta[i])
+
+    if (args1.t_zero < t_zero_ref - 0.2*period_ref) or (args1.t_zero > t_zero_ref + 0.2*period_ref) : return -np.inf
+    if (args1.period < period_ref - 1e-3) or (args1.period > period_ref + 1e-3) : return -np.inf 
+    if (args1.k < 0.0) or (args1.k > 0.4) : return -np.inf 
+    if (args1.radius_1 < 0.0) or (args1.radius_1 > 0.4) : return -np.inf 
+    if (args.b < 0) or (args.b > 1.0 + args.k) : return -np.inf 
+    if (args.J < 0) : return -np.inf 
+
+    # Return the loglike
+    log =  lc(time, mag=mag, mag_err=mag_err, J=args1.J, zp = args1.zp,
+        t_zero = args1.t_zero, period = args1.period,
+        radius_1 = args1.radius_1, k=args1.k, 
+        fs = 0.0, fc = 0.0, 
+        q=args1.q, albedo = args1.albedo,
+        alpha_doppler=args1.alpha_doppler, K1 = args1.K1,
+        spots = np.array(args1.spots), omega_1=1., nspots=nspots,
+        incl = 180*np.arccos(args1.radius_1*args1.b)/np.pi,
+        ldc_law_1=ld_law, ldc_1_1 = args1.ldc_1, ldc_1_2 = args1.ldc_2, gdc_1 = args1.gdc_1,
+        SBR=args1.SBR, light_3 = args1.light_3,
+        Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5,
+        nthreads=1)
+
+    if np.isnan(log) : return -np.inf 
+    else : return log
+
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+
+    # Print the welcome message 
+    print(welcome_message)
+
+    # Check for a file
+    if len(sys.argv) == 1 : raise ValueError('No file specified')
+
+    # Now load the datafile
+    time, mag, mag_err = np.loadtxt(args.filename).T
+    time = time.astype(np.float64)
+    mag = mag.astype(np.float64) 
+    mag_err = mag_err.astype(np.float64)
+
+    print('Loaded {:,} lines from {:}'.format(len(time),args.filename))
+    print('---------------------------------------------------')
+
+    # Report 
+    print('System parameters:')
+    print('\tt_zero   : {:}'.format(args.t_zero))
+    print('\tperiod   : {:}'.format(args.period))
+    print('\tradius_1 : {:}'.format(args.radius_1))
+    print('\tk        : {:}'.format(args.k))
+    print('\tb        : {:} [{:.2f} deg]'.format(args.b, 180*np.arccos(args.radius_1*args.b)/np.pi))
+    print('\tzp       : {:}'.format(args.zp))
+    print('\tld_law   : {:}'.format(args.limb_darkening_law))
+    print('\t\t   -------')
+    print('\t\t   ldc_1 {:}'.format(args.ldc_1))
+    print('\t\t   ldc_2 {:}'.format(args.ldc_2)) 
+    print('\t\t   gdc_1 {:}'.format(args.gdc_1)) 
+    nspots = len(args.spots)//4
+    print('\tspots    : {:}'.format(nspots))
+    if (nspots > 0):
+        for i in range(nspots):
+            print('\t\t   Spot ', i, '\n\t\t   -------')
+            print('\t\t   longitude of spot centre (radians) = {:}'.format(args.spots[4*i + 0]))
+            print('\t\t   latitude of spot centre (radians)  = {:}'.format(args.spots[4*i + 1]))
+            print('\t\t   angular radius of spot (radians)   = {:}'.format(args.spots[4*i + 2]))
+            print('\t\t   Spot contrast ratio (a=Is/Ip).     = {:}'.format(args.spots[4*i + 3])) 
+    print('\tq      : {:}'.format(args.q)) 
+    print('\talbedo : {:}'.format(args.albedo)) 
+    print('\talpha  : {:}'.format(args.alpha_doppler)) 
+    print('\tK1     : {:}'.format(args.K1)) 
+    print('\tlight_3: {:}'.format(args.light_3)) 
+    print('\tsbr    : {:}'.format(args.SBR))
+    print('\ttrial  : {:}'.format(args.trial))
+    print('\tFree parameters ({:}):'.format(len(args.fitpars)))
+    for i in range(len(args.fitpars)):
+        print('\t\t{:}'.format(args.fitpars[i]))
+    print('\tThreads  : {:}'.format(args.threads))
+    if args.limb_darkening_law =='quadratic' : ld_law = 1
+    if args.limb_darkening_law =='power2'    : ld_law = 0
+
+    # Now let's do a trial if needed
+    if args.trial:
+        phase = phaser(time ,args.t_zero, args.period) 
+        plt.figure(figsize=(15,5))
+        plt.scatter(phase, mag, c='k', s=10, alpha=args.plot_alpha)
+        plt.scatter(phase-1, mag, c='k', s=10, alpha=args.plot_alpha)
+
+        # Now get the model 
+        phase_time = np.linspace(-0.2,0.8, 1000)
+
+
+
+        model = lc(phase_time,
+            radius_1 = args.radius_1, k=args.k, 
+            fs = 0.0, fc = 0.0, 
+            q=args.q, albedo = args.albedo,
+            alpha_doppler=args.alpha_doppler, K1 = args.K1,
+            spots = np.array(args.spots), omega_1=1., nspots=nspots,
+            incl = 180*np.arccos(args.radius_1*args.b)/np.pi,
+            ldc_law_1=ld_law, ldc_1_1 = args.ldc_1, ldc_1_2 = args.ldc_2, gdc_1 = args.gdc_1,
+            SBR=args.SBR, light_3 = args.light_3,
+            Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5,
+            nthreads=1)
+        model = args.zp - 2.5*np.log10(model)
+
+        loglike = lc(time, mag=mag, mag_err=mag_err, J=args.J, zp = args.zp,
+                    radius_1 = args.radius_1, k=args.k, 
+                    fs = 0.0, fc = 0.0, 
+                    q=args.q, albedo = args.albedo,
+                    alpha_doppler=args.alpha_doppler, K1 = args.K1,
+                    spots = np.array(args.spots), omega_1=1., nspots=nspots,
+                    incl = 180*np.arccos(args.radius_1*args.b)/np.pi,
+                    ldc_law_1=ld_law, ldc_1_1 = args.ldc_1, ldc_1_2 = args.ldc_2, gdc_1 = args.gdc_1,
+                    SBR=args.SBR, light_3 = args.light_3,
+                    Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5,
+                    nthreads=1)
+
+        plt.plot(phase_time, model)
+        plt.title(r'$\chi^2$ = {:.4f}'.format(loglike/len(time) ) ) 
+        plt.xlim(-0.2,0.8)
+        plt.gca().invert_yaxis()
+        plt.xlabel('Phase')
+        plt.ylabel('Mag')
+        plt.show() 
+
+
+    if args.emcee:
+        # first, let's validat arguments 
+        print(emcee_message)
+        ndim = len(args.fitpars)
+        for i in range(len(args.fitpars)):
+            if not hasattr(args, args.fitpars[i]) : raise ValueError('Parameter "{:}" is not a valid identifier.'.format(args.fitpars[i]))
+
+        nwalkers = 4*ndim 
+        theta = []
+        for i in range(len(args.fitpars)) : theta.append(float(eval('args.{:}'.format(args.fitpars[i]))))
+        p0 = np.array([np.random.normal(theta, 1e-6).tolist() for i in range(nwalkers)])
+
+        # Set up the backend
+        # Don't forget to clear it in case the file already exists
+        filename = "emcee_output.h5"
+        backend = emcee.backends.HDFBackend(filename)
+        backend.reset(nwalkers, ndim)
+
+        with Pool(10) as pool:
+            sampler = emcee.EnsembleSampler(nwalkers, ndim, lnlike, args = (time, mag, mag_err, args.fitpars, args.t_zero, args.period), backend=backend, pool=pool)
+            sampler.run_mcmc(p0, args.emcee_steps, progress=True) 
+
+
+
+        fig_chain, axes = plt.subplots(ndim, figsize=(6, 3*ndim))
+        samples = sampler.get_chain()
+        for i in range(ndim):
+            ax = axes[i] 
+            ax.semilogx(samples[:,:,i], 'k', alpha = 0.3)
+            ax.set_xlim(0,len(samples))
+            ax.set_ylabel(args.fitpars[i]) 
+        fig_chain.savefig('chain.png')
+        plt.close(fig_chain)
+
+
+        samples = sampler.get_chain(flat=True, discard=args.emcee_burn_in)
+        logs = sampler.get_log_prob(flat=True, discard=args.emcee_burn_in) 
+
+
+
+
+        best_idx = np.argmax(logs) 
+        best_step = samples[best_idx] 
+        low_err = best_step - np.percentile(samples, 16, axis=0)
+        high_err = np.percentile(samples, 84, axis=0) - best_step
+
+        print('Best result:')
+        output_file = open('results.txt', 'w') 
+        for i in range(ndim) : 
+            print('{:>15} = {:.5f} + {:.5f} - {:.5f}'.format(args.fitpars[i], best_step[i], high_err[i], low_err[i]))
+            output_file.write('{:>15},{:.5f},{:.5f},{:.5f}\n'.format(args.fitpars[i], best_step[i], high_err[i], low_err[i]))
+        output_file.close() 
+
+        # now make the corner
+        fig_corner = corner.corner(samples, labels=args.fitpars, truths = best_step)
+        fig_corner.savefig('corner.png')
+        plt.close(fig_corner)
+
+        # Now set the best par and get the model 
+        for i in range(ndim) : args.__setattr__(args.fitpars[i], best_step[i])
+
+        phase = phaser(time ,args.t_zero, args.period) 
+
+        best_model_fig = plt.figure(figsize=(15,5))
+        plt.scatter(phase, mag, c='k', s=10, alpha=args.plot_alpha)
+        plt.scatter(phase-1, mag, c='k', s=10, alpha=args.plot_alpha)
+
+        # Now need to bin phase 
+        sorr = sorted(zip(phase, mag))
+        phase = np.array([i[0] for i in sorr])
+        mag_sorted = np.array([i[1] for i in sorr])
+
+
+        x1, y1, ye1 = lc_bin(phase, mag_sorted, (1 / 24.)/args.period/2 )
+        plt.scatter(x1,y1, c='r', s=10)
+        plt.scatter(x1-1,y1, c='r', s=10)
+
+
+        # Now get the model 
+        phase_time = np.linspace(-0.2,0.8, 1000)
+        model = lc(phase_time,
+            radius_1 = args.radius_1, k=args.k, 
+            fs = 0.0, fc = 0.0, 
+            q=args.q, albedo = args.albedo,
+            alpha_doppler=args.alpha_doppler, K1 = args.K1,
+            spots = np.array(args.spots), omega_1=1., nspots=nspots,
+            incl = 180*np.arccos(args.radius_1*args.b)/np.pi,
+            ldc_law_1=ld_law, ldc_1_1 = args.ldc_1, ldc_1_2 = args.ldc_2, gdc_1 = args.gdc_1,
+            SBR=args.SBR, light_3 = args.light_3,
+            Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5,
+            nthreads=1)
+        model = args.zp - 2.5*np.log10(model)
+
+        loglike = lc(time, mag=mag, mag_err=mag_err, J=args.J, zp = args.zp,
+                    radius_1 = args.radius_1, k=args.k, 
+                    fs = 0.0, fc = 0.0, 
+                    q=args.q, albedo = args.albedo,
+                    alpha_doppler=args.alpha_doppler, K1 = args.K1,
+                    spots = np.array(args.spots), omega_1=1., nspots=nspots,
+                    incl = 180*np.arccos(args.radius_1*args.b)/np.pi,
+                    ldc_law_1=ld_law, ldc_1_1 = args.ldc_1, ldc_1_2 = args.ldc_2, gdc_1 = args.gdc_1,
+                    SBR=args.SBR, light_3 = args.light_3,
+                    Accurate_t_ecl=0, t_ecl_tolerance=1e-5, Accurate_Eccentric_Anomaly=1, E_tol=1e-5,
+                    nthreads=1)
+
+        plt.plot(phase_time, model)
+        plt.title(r'$\chi^2$ = {:.4f}'.format(loglike/len(time) ) ) 
+        plt.xlim(np.max([-0.2, np.min(min(phase - 1 ))]), 0.8)
+        plt.gca().invert_yaxis()
+        plt.xlabel('Phase')
+        plt.ylabel('Mag')
+        best_model_fig.savefig('best_model.png') 
+        plt.xlim(-0.05, 0.05) 
+        best_model_fig.savefig('best_model_zoom.png') 
+        plt.close(best_model_fig)

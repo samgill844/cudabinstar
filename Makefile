@@ -4,6 +4,8 @@ all :
 	mkdir -p ~/bin
 	(cd cudabinstar/cudalc; make; make install)
 	#(cd cudabinstar/cudamc; make; make install)
+	cp ngtsfit2/ngtsfit ~/bin
+	cp ngtsfit/ngtsbin ~/bin
 	#(cd ngtsfit; make; make install)
 	#(cd ngtsfieldfit; make install)
 

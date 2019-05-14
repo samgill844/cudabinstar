@@ -243,7 +243,6 @@ def lc(time, mag=np.zeros(1), mag_err=np.zeros(1), J=0., zp=0.0,
         d_LC_ERR = mag_err.ctypes.data_as(POINTER(c_double))
         loglike_switch = 1
 
-
     d_time =  time.ctypes.data_as(POINTER(c_double))
     d_spots = spots.ctypes.data_as(POINTER(c_double))
 

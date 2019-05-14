@@ -23,5 +23,4 @@ __host__ __device__ double Fellipsoidal(double nu, double q, double radius_1, do
     // Now return the variation 
     //return -Ae*( cos(2*M_PI*2*nu)    +    f1*cos(2*M_PI*nu)      +      f2*cos(2*M_PI*3*nu) );
     return -Ae*( cos(2*nu)    +    f1*cos(nu)      +      f2*cos(3*nu) );
-
 }
